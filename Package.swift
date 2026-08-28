@@ -1,27 +1,125 @@
 // swift-tools-version: 6.3
-// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
     name: "Transcribe",
+    platforms: [
+        .macOS(.v26),
+    ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "Transcribe",
-            targets: ["Transcribe"]
+            targets: [
+                "Transcribe",
+            ]
+        ),
+        .library(
+            name: "TranscribeApple",
+            targets: [
+                "TranscribeApple",
+            ]
+        ),
+        .library(
+            name: "Diarization",
+            targets: [
+                "Diarization",
+            ]
+        ),
+        .library(
+            name: "SpeechAnalysis",
+            targets: [
+                "SpeechAnalysis",
+            ]
+        ),
+        .executable(
+            name: "transcribe",
+            targets: [
+                "TranscribeCLI",
+            ]
+        ),
+        .executable(
+            name: "transtest",
+            targets: [
+                "TranscribeTestFlows",
+            ]
+        ),
+    ],
+    dependencies: [
+        .package(
+            url: "https://github.com/leviouwendijk/Media.git",
+            branch: "master"
+        ),
+        .package(
+            url: "https://github.com/leviouwendijk/TestFlows.git",
+            branch: "master"
         ),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "Transcribe"
+            name: "Transcribe",
+            dependencies: [
+                .product(
+                    name: "MediaCore",
+                    package: "Media"
+                ),
+            ]
         ),
-        .testTarget(
-            name: "TranscribeTests",
-            dependencies: ["Transcribe"]
+        .target(
+            name: "Diarization",
+            dependencies: [
+                .product(
+                    name: "MediaCore",
+                    package: "Media"
+                ),
+            ]
+        ),
+        .target(
+            name: "SpeechAnalysis",
+            dependencies: [
+                "Transcribe",
+                "Diarization",
+                .product(
+                    name: "MediaCore",
+                    package: "Media"
+                ),
+            ]
+        ),
+        .target(
+            name: "TranscribeApple",
+            dependencies: [
+                "Transcribe",
+                .product(
+                    name: "MediaCore",
+                    package: "Media"
+                ),
+            ]
+        ),
+        .executableTarget(
+            name: "TranscribeCLI",
+            dependencies: [
+                "TranscribeApple",
+            ]
+        ),
+        .executableTarget(
+            name: "TranscribeTestFlows",
+            dependencies: [
+                "Transcribe",
+                "TranscribeApple",
+                "Diarization",
+                "SpeechAnalysis",
+                .product(
+                    name: "MediaCore",
+                    package: "Media"
+                ),
+                .product(
+                    name: "TestFlows",
+                    package: "TestFlows"
+                ),
+            ]
         ),
     ],
-    swiftLanguageModes: [.v6]
+    swiftLanguageModes: [
+        .v6,
+    ]
 )
