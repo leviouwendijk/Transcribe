@@ -89,6 +89,7 @@ public struct Diarizer: Sendable {
     ) -> DiarizationResult {
         let result = diarize(
             evidence.raw,
+            enhanced: evidence.enhanced,
             configuration: configuration
         )
 
@@ -105,12 +106,14 @@ public struct Diarizer: Sendable {
 
     public func diarize(
         _ analysis: AcousticAnalysis,
+        enhanced: AcousticAnalysis? = nil,
         configuration: DiarizationConfiguration = .init()
     ) -> DiarizationResult {
         let observations = SpeakerObservationBuilder(
             configuration: configuration.speakerObservation
         ).build(
-            from: analysis
+            from: analysis,
+            enhanced: enhanced
         )
 
         guard !observations.isEmpty else {
@@ -126,9 +129,19 @@ public struct Diarizer: Sendable {
             $0.features.values
         }
 
-        let vectors = standardized(
+        let standardizedVectors = standardized(
             originalVectors
         )
+
+        let vectors = standardizedVectors.enumerated().map {
+            index,
+            vector in
+
+            weighted(
+                vector,
+                weights: observations[index].features.weights
+            )
+        }
 
         let clustering: ClusterResult
 
@@ -174,7 +187,8 @@ public struct Diarizer: Sendable {
             observations: observations,
             originalVectors: originalVectors,
             assignments: clustering.assignments,
-            speakerIDs: speakerIDs
+            speakerIDs: speakerIDs,
+            analysis: analysis
         )
 
         return .init(
@@ -582,15 +596,37 @@ private extension Diarizer {
         observations: [SpeakerObservation],
         originalVectors: [[Double]],
         assignments: [Int],
-        speakerIDs: [SpeakerID]
+        speakerIDs: [SpeakerID],
+        analysis: AcousticAnalysis
     ) -> [SpeakerProfile] {
-        speakerIDs.indices.map { cluster in
+        let acousticByID = Dictionary(
+            uniqueKeysWithValues: analysis.observations.map {
+                (
+                    $0.id,
+                    $0
+                )
+            }
+        )
+
+        return speakerIDs.indices.map { cluster in
             let indices = observations.indices.filter {
                 assignments[$0] == cluster
             }
 
             let vectors = indices.map {
                 originalVectors[$0]
+            }
+
+            let acousticObservations = indices.flatMap { index in
+                observations[index]
+                    .acousticObservationIDs
+                    .compactMap {
+                        acousticByID[$0]
+                    }
+            }
+
+            let agreements = indices.compactMap {
+                observations[$0].viewAgreement
             }
 
             return SpeakerProfile(
@@ -608,6 +644,10 @@ private extension Diarizer {
                     dispersionVector(
                         vectors
                     )
+                ),
+                acousticProfile: .init(
+                    observations: acousticObservations,
+                    enhancedAgreements: agreements
                 )
             )
         }
@@ -674,6 +714,25 @@ private extension Diarizer {
             sqrt(
                 $0 / Double(vectors.count)
             )
+        }
+    }
+
+    func weighted(
+        _ vector: [Double],
+        weights: [Double]
+    ) -> [Double] {
+        vector.indices.map { index in
+            let weight = index < weights.count
+                ? weights[index]
+                : 1
+
+            return vector[index]
+                * sqrt(
+                    max(
+                        0,
+                        weight
+                    )
+                )
         }
     }
 

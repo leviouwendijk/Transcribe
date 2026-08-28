@@ -238,6 +238,20 @@ private extension TranscribeCLI {
                     dispersion
                 )
             )
+
+            if let acoustic = profile.acousticProfile {
+                print(
+                    String(
+                        format: "  pitch median=%.1fHz q10=%.1f q90=%.1f consistency=%.3f quality=%.3f view-agreement=%.3f",
+                        acoustic.pitchHz.median,
+                        acoustic.pitchHz.q10,
+                        acoustic.pitchHz.q90,
+                        acoustic.consistency.median,
+                        acoustic.quality.median,
+                        acoustic.enhancedAgreement.median
+                    )
+                )
+            }
         }
     }
 

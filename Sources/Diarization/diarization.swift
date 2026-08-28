@@ -36,11 +36,17 @@ public struct SpeakerFeatureVector:
     Hashable
 {
     public let values: [Double]
+    public let weights: [Double]
 
     public init(
-        _ values: [Double]
+        _ values: [Double],
+        weights: [Double]? = nil
     ) {
         self.values = values
+        self.weights = weights ?? Array(
+            repeating: 1,
+            count: values.count
+        )
     }
 }
 
@@ -54,6 +60,7 @@ public struct SpeakerProfile:
     public let observedDurationSeconds: TimeInterval
     public let acousticCentroid: SpeakerFeatureVector?
     public let acousticDispersion: SpeakerFeatureVector?
+    public let acousticProfile: SpeakerAcousticProfile?
     public let embeddingCentroid: SpeakerEmbedding?
     public let embeddingDispersion: SpeakerEmbedding?
 
@@ -63,6 +70,7 @@ public struct SpeakerProfile:
         observedDurationSeconds: TimeInterval,
         acousticCentroid: SpeakerFeatureVector? = nil,
         acousticDispersion: SpeakerFeatureVector? = nil,
+        acousticProfile: SpeakerAcousticProfile? = nil,
         embeddingCentroid: SpeakerEmbedding? = nil,
         embeddingDispersion: SpeakerEmbedding? = nil
     ) {
@@ -71,6 +79,7 @@ public struct SpeakerProfile:
         self.observedDurationSeconds = observedDurationSeconds
         self.acousticCentroid = acousticCentroid
         self.acousticDispersion = acousticDispersion
+        self.acousticProfile = acousticProfile
         self.embeddingCentroid = embeddingCentroid
         self.embeddingDispersion = embeddingDispersion
     }
