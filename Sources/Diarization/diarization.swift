@@ -30,6 +30,20 @@ public struct SpeakerEmbedding:
     }
 }
 
+public struct SpeakerFeatureVector:
+    Sendable,
+    Codable,
+    Hashable
+{
+    public let values: [Double]
+
+    public init(
+        _ values: [Double]
+    ) {
+        self.values = values
+    }
+}
+
 public struct SpeakerProfile:
     Sendable,
     Codable,
@@ -38,6 +52,8 @@ public struct SpeakerProfile:
     public let speaker: SpeakerID
     public let observationCount: Int
     public let observedDurationSeconds: TimeInterval
+    public let acousticCentroid: SpeakerFeatureVector?
+    public let acousticDispersion: SpeakerFeatureVector?
     public let embeddingCentroid: SpeakerEmbedding?
     public let embeddingDispersion: SpeakerEmbedding?
 
@@ -45,12 +61,16 @@ public struct SpeakerProfile:
         speaker: SpeakerID,
         observationCount: Int,
         observedDurationSeconds: TimeInterval,
+        acousticCentroid: SpeakerFeatureVector? = nil,
+        acousticDispersion: SpeakerFeatureVector? = nil,
         embeddingCentroid: SpeakerEmbedding? = nil,
         embeddingDispersion: SpeakerEmbedding? = nil
     ) {
         self.speaker = speaker
         self.observationCount = observationCount
         self.observedDurationSeconds = observedDurationSeconds
+        self.acousticCentroid = acousticCentroid
+        self.acousticDispersion = acousticDispersion
         self.embeddingCentroid = embeddingCentroid
         self.embeddingDispersion = embeddingDispersion
     }
@@ -64,15 +84,18 @@ public struct SpeakerSegment:
     public let range: Audio.TimeRange
     public let speaker: SpeakerID
     public let confidence: Double?
+    public let observationIDs: [SpeakerObservationID]
 
     public init(
         range: Audio.TimeRange,
         speaker: SpeakerID,
-        confidence: Double? = nil
+        confidence: Double? = nil,
+        observationIDs: [SpeakerObservationID] = []
     ) {
         self.range = range
         self.speaker = speaker
         self.confidence = confidence
+        self.observationIDs = observationIDs
     }
 }
 
@@ -83,13 +106,16 @@ public struct DiarizationResult:
 {
     public let segments: [SpeakerSegment]
     public let profiles: [SpeakerProfile]
+    public let observations: [SpeakerObservation]
 
     public init(
         segments: [SpeakerSegment],
-        profiles: [SpeakerProfile] = []
+        profiles: [SpeakerProfile] = [],
+        observations: [SpeakerObservation] = []
     ) {
         self.segments = segments
         self.profiles = profiles
+        self.observations = observations
     }
 
     public var speakers: [SpeakerID] {

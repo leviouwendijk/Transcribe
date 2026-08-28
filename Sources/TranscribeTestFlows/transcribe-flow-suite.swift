@@ -7,6 +7,8 @@ enum TranscribeFlowSuite: TestFlowRegistry {
         transcriptionFlow,
         acousticObservationFlow,
         acousticActivityFlow,
+        speakerObservationFlow,
+        sessionClusteringFlow,
         diarizationFlow,
         alignmentFlow,
         appleContractFlow,
