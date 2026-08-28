@@ -10,6 +10,7 @@ public struct AcousticAnalyzerConfiguration:
     public let minimumPitchHz: Double
     public let maximumPitchHz: Double
     public let minimumPitchEvidence: Double
+    public let minimumPitchConfidence: Double
     public let silenceRMS: Double
     public let adaptiveNoiseMultiplier: Double
     public let clippingThreshold: Double
@@ -28,6 +29,7 @@ public struct AcousticAnalyzerConfiguration:
         minimumPitchHz: Double = 70,
         maximumPitchHz: Double = 350,
         minimumPitchEvidence: Double = 0.12,
+        minimumPitchConfidence: Double = 0.15,
         silenceRMS: Double = 0.006,
         adaptiveNoiseMultiplier: Double = 2.5,
         clippingThreshold: Double = 0.995,
@@ -44,6 +46,7 @@ public struct AcousticAnalyzerConfiguration:
         precondition(rolloffFraction > 0 && rolloffFraction <= 1)
         precondition(minimumPitchHz > 0)
         precondition(maximumPitchHz > minimumPitchHz)
+        precondition(minimumPitchConfidence >= 0 && minimumPitchConfidence <= 1)
         precondition(melFilterCount > 0)
         precondition(mfccCount > 0)
         precondition(mfccCount <= melFilterCount)
@@ -55,6 +58,7 @@ public struct AcousticAnalyzerConfiguration:
         self.minimumPitchHz = minimumPitchHz
         self.maximumPitchHz = maximumPitchHz
         self.minimumPitchEvidence = minimumPitchEvidence
+        self.minimumPitchConfidence = minimumPitchConfidence
         self.silenceRMS = silenceRMS
         self.adaptiveNoiseMultiplier = adaptiveNoiseMultiplier
         self.clippingThreshold = clippingThreshold

@@ -123,6 +123,7 @@ public struct AcousticTraceSample:
     public let peak: Double
     public let crestFactor: Double
     public let pitchHz: Double?
+    public let pitchConfidence: Double
     public let voicedProbability: Double
     public let centroidHz: Double
     public let spreadHz: Double
@@ -141,6 +142,7 @@ public struct AcousticTraceSummary:
     public let rms: AcousticDistribution
     public let crestFactor: AcousticDistribution
     public let pitchHz: AcousticDistribution
+    public let pitchConfidence: AcousticDistribution
     public let centroidHz: AcousticDistribution
     public let flatness: AcousticDistribution
     public let quality: AcousticDistribution
@@ -159,6 +161,9 @@ public struct AcousticTraceSummary:
         )
         pitchHz = .init(
             values: samples.compactMap(\.pitchHz)
+        )
+        pitchConfidence = .init(
+            values: samples.map(\.pitchConfidence)
         )
         centroidHz = .init(
             values: samples.map(\.centroidHz)
@@ -224,6 +229,7 @@ public extension AcousticAnalysis {
                             / observation.signal.rms
                         : 0,
                     pitchHz: observation.spectral.pitchHz,
+                    pitchConfidence: observation.spectral.pitchConfidence,
                     voicedProbability: observation.spectral.voicedProbability,
                     centroidHz: observation.spectral.centroidHz,
                     spreadHz: observation.spectral.spreadHz,

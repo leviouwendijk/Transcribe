@@ -430,21 +430,20 @@ private extension AcousticAnalyzer {
         )
 
         var pitch: Double?
+        var pitchConfidence = 0.0
         var voicedProbability = 0.0
 
         if minimumBin <= maximumBin {
-            var dominantBin = minimumBin
             var dominantPower = 0.0
             var bandPower = 0.0
 
             for index in minimumBin...maximumBin {
                 let value = power[index]
                 bandPower += value
-
-                if value > dominantPower {
-                    dominantPower = value
-                    dominantBin = index
-                }
+                dominantPower = max(
+                    dominantPower,
+                    value
+                )
             }
 
             if bandPower > 1e-20 {
@@ -454,9 +453,115 @@ private extension AcousticAnalyzer {
                 )
             }
 
-            if voicedProbability >= configuration.minimumPitchEvidence {
-                pitch = Double(dominantBin)
-                    * binWidth
+            var scores = Array(
+                repeating: 0.0,
+                count: maximumBin - minimumBin + 1
+            )
+
+            var bestBin = minimumBin
+            var bestScore = 0.0
+
+            for candidate in minimumBin...maximumBin {
+                let score = harmonicPitchScore(
+                    candidateBin: candidate,
+                    power: power
+                )
+
+                scores[candidate - minimumBin] = score
+
+                if score > bestScore {
+                    bestScore = score
+                    bestBin = candidate
+                }
+            }
+
+            if bestScore > 1e-20 {
+                var secondScore = 0.0
+
+                for candidate in minimumBin...maximumBin {
+                    guard abs(candidate - bestBin) > 1 else {
+                        continue
+                    }
+
+                    guard power[candidate]
+                        >= dominantPower * 0.02 else {
+                        continue
+                    }
+
+                    secondScore = max(
+                        secondScore,
+                        scores[candidate - minimumBin]
+                    )
+                }
+
+                let margin = secondScore > 0
+                    ? max(
+                        0,
+                        (bestScore - secondScore)
+                            / bestScore
+                    )
+                    : 1
+
+                let fundamentalPresence = dominantPower > 1e-20
+                    ? min(
+                        1,
+                        sqrt(
+                            max(
+                                0,
+                                power[bestBin]
+                                    / dominantPower
+                            )
+                        )
+                    )
+                    : 0
+
+                pitchConfidence = min(
+                    1,
+                    max(
+                        0,
+                        0.60 * voicedProbability
+                            + 0.25 * fundamentalPresence
+                            + 0.15 * margin
+                    )
+                )
+
+                if voicedProbability
+                    >= configuration.minimumPitchEvidence,
+                   pitchConfidence
+                    >= configuration.minimumPitchConfidence {
+                    var offset = 0.0
+                    let scoreIndex = bestBin
+                        - minimumBin
+
+                    if scoreIndex > 0,
+                       scoreIndex + 1 < scores.count {
+                        let left = scores[scoreIndex - 1]
+                        let center = scores[scoreIndex]
+                        let right = scores[scoreIndex + 1]
+                        let denominator = left
+                            - 2 * center
+                            + right
+
+                        if abs(denominator) > 1e-20 {
+                            offset = 0.5
+                                * (left - right)
+                                / denominator
+
+                            offset = min(
+                                0.5,
+                                max(
+                                    -0.5,
+                                    offset
+                                )
+                            )
+                        }
+                    }
+
+                    pitch = (
+                        Double(bestBin)
+                            + offset
+                    ) * binWidth
+                }
             }
         }
 
@@ -471,10 +576,43 @@ private extension AcousticAnalyzer {
             rolloffHz: rolloff,
             flatness: flatness,
             pitchHz: pitch,
+            pitchConfidence: pitchConfidence,
             voicedProbability: voicedProbability,
             logMelEnergies: cepstral.logMelEnergies,
             mfcc: cepstral.mfcc
         )
+    }
+
+    func harmonicPitchScore(
+        candidateBin: Int,
+        power: [Double]
+    ) -> Double {
+        let harmonicWeights = [
+            1.0,
+            0.90,
+            0.60,
+            0.40,
+        ]
+
+        var score = 0.0
+
+        for (
+            index,
+            weight
+        ) in harmonicWeights.enumerated() {
+            let harmonic = index + 1
+            let bin = candidateBin
+                * harmonic
+
+            guard bin < power.count else {
+                break
+            }
+
+            score += power[bin]
+                * weight
+        }
+
+        return score
     }
 
     func cepstralFeatures(
@@ -834,6 +972,7 @@ private extension AcousticAnalyzer {
             rolloffHz: 0,
             flatness: 0,
             pitchHz: nil,
+            pitchConfidence: 0,
             voicedProbability: 0,
             logMelEnergies: Array(
                 repeating: log(1e-20),

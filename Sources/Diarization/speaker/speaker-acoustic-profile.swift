@@ -7,6 +7,7 @@ public struct SpeakerAcousticProfile:
 {
     public let rms: AcousticDistribution
     public let pitchHz: AcousticDistribution
+    public let pitchConfidence: AcousticDistribution
     public let centroidHz: AcousticDistribution
     public let flatness: AcousticDistribution
     public let consistency: AcousticDistribution
@@ -43,6 +44,11 @@ public struct SpeakerAcousticProfile:
         pitchHz = .init(
             values: rawObservations.compactMap {
                 $0.spectral.pitchHz
+            }
+        )
+        pitchConfidence = .init(
+            values: rawObservations.map {
+                $0.spectral.pitchConfidence
             }
         )
         centroidHz = .init(

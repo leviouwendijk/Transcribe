@@ -242,10 +242,11 @@ private extension TranscribeCLI {
             if let acoustic = profile.acousticProfile {
                 print(
                     String(
-                        format: "  pitch median=%.1fHz q10=%.1f q90=%.1f consistency=%.3f raw-quality=%.3f enhanced-quality=%.3f recovered=%.1f%% mfcc-shape=%.3f mel-shape=%.3f view=%.3f",
+                        format: "  pitch median=%.1fHz q10=%.1f q90=%.1f confidence=%.3f consistency=%.3f raw-quality=%.3f enhanced-quality=%.3f recovered=%.1f%% mfcc-shape=%.3f mel-shape=%.3f view=%.3f",
                         acoustic.pitchHz.median,
                         acoustic.pitchHz.q10,
                         acoustic.pitchHz.q90,
+                        acoustic.pitchConfidence.median,
                         acoustic.consistency.median,
                         acoustic.rawQuality.median,
                         acoustic.enhancedQuality.median,

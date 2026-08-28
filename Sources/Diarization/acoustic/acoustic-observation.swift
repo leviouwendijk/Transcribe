@@ -81,6 +81,7 @@ public struct AcousticSpectralFeatures:
     public let rolloffHz: Double
     public let flatness: Double
     public let pitchHz: Double?
+    public let pitchConfidence: Double
     public let voicedProbability: Double
     public let logMelEnergies: [Double]
     public let mfcc: [Double]
@@ -91,6 +92,7 @@ public struct AcousticSpectralFeatures:
         rolloffHz: Double,
         flatness: Double,
         pitchHz: Double?,
+        pitchConfidence: Double = 0,
         voicedProbability: Double,
         logMelEnergies: [Double] = [],
         mfcc: [Double]
@@ -100,6 +102,7 @@ public struct AcousticSpectralFeatures:
         self.rolloffHz = rolloffHz
         self.flatness = flatness
         self.pitchHz = pitchHz
+        self.pitchConfidence = pitchConfidence
         self.voicedProbability = voicedProbability
         self.logMelEnergies = logMelEnergies
         self.mfcc = mfcc
