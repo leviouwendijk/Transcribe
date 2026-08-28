@@ -97,7 +97,8 @@ public struct Diarizer: Sendable {
             return .init(
                 segments: [],
                 profiles: [],
-                observations: []
+                observations: [],
+                acoustic: analysis
             )
         }
 
@@ -159,7 +160,8 @@ public struct Diarizer: Sendable {
         return .init(
             segments: segments,
             profiles: profiles,
-            observations: observations
+            observations: observations,
+            acoustic: analysis
         )
     }
 }

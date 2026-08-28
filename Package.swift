@@ -89,8 +89,14 @@ let package = Package(
             name: "TranscribeApple",
             dependencies: [
                 "Transcribe",
+                "Diarization",
+                "SpeechAnalysis",
                 .product(
                     name: "MediaCore",
+                    package: "Media"
+                ),
+                .product(
+                    name: "MediaAV",
                     package: "Media"
                 ),
             ]
@@ -99,6 +105,8 @@ let package = Package(
             name: "TranscribeCLI",
             dependencies: [
                 "TranscribeApple",
+                "Diarization",
+                "SpeechAnalysis",
             ]
         ),
         .executableTarget(
