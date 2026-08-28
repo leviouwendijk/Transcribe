@@ -5,6 +5,8 @@ enum TranscribeFlowSuite: TestFlowRegistry {
 
     static let flows: [TestFlow] = [
         transcriptionFlow,
+        acousticObservationFlow,
+        acousticActivityFlow,
         diarizationFlow,
         alignmentFlow,
         appleContractFlow,
