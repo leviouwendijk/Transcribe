@@ -69,7 +69,7 @@ public struct SpeakerObservation:
     public let acousticObservationIDs: [AcousticObservationID]
     public let features: SpeakerFeatureVector
     public let qualityScore: Double
-    public let viewAgreement: Double?
+    public let viewAgreement: AcousticViewAgreement?
 
     public init(
         id: SpeakerObservationID,
@@ -77,7 +77,7 @@ public struct SpeakerObservation:
         acousticObservationIDs: [AcousticObservationID],
         features: SpeakerFeatureVector,
         qualityScore: Double,
-        viewAgreement: Double? = nil
+        viewAgreement: AcousticViewAgreement? = nil
     ) {
         self.id = id
         self.range = range

@@ -188,7 +188,8 @@ public struct Diarizer: Sendable {
             originalVectors: originalVectors,
             assignments: clustering.assignments,
             speakerIDs: speakerIDs,
-            analysis: analysis
+            analysis: analysis,
+            enhanced: enhanced
         )
 
         return .init(
@@ -597,7 +598,8 @@ private extension Diarizer {
         originalVectors: [[Double]],
         assignments: [Int],
         speakerIDs: [SpeakerID],
-        analysis: AcousticAnalysis
+        analysis: AcousticAnalysis,
+        enhanced: AcousticAnalysis?
     ) -> [SpeakerProfile] {
         let acousticByID = Dictionary(
             uniqueKeysWithValues: analysis.observations.map {
@@ -606,6 +608,15 @@ private extension Diarizer {
                     $0
                 )
             }
+        )
+
+        let enhancedByID = Dictionary(
+            uniqueKeysWithValues: enhanced?.observations.map {
+                (
+                    $0.id,
+                    $0
+                )
+            } ?? []
         )
 
         return speakerIDs.indices.map { cluster in
@@ -622,6 +633,14 @@ private extension Diarizer {
                     .acousticObservationIDs
                     .compactMap {
                         acousticByID[$0]
+                    }
+            }
+
+            let enhancedObservations = indices.flatMap { index in
+                observations[index]
+                    .acousticObservationIDs
+                    .compactMap {
+                        enhancedByID[$0]
                     }
             }
 
@@ -646,8 +665,9 @@ private extension Diarizer {
                     )
                 ),
                 acousticProfile: .init(
-                    observations: acousticObservations,
-                    enhancedAgreements: agreements
+                    rawObservations: acousticObservations,
+                    enhancedObservations: enhancedObservations,
+                    agreements: agreements
                 )
             )
         }

@@ -13,6 +13,7 @@ enum TranscribeFlowSuite: TestFlowRegistry {
         sessionAcousticFlow,
         speakerObservationFlow,
         multiViewSpeakerFlow,
+        multiViewCalibrationFlow,
         sessionClusteringFlow,
         diarizationFlow,
         alignmentFlow,

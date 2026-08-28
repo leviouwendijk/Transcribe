@@ -394,7 +394,7 @@ private extension SpeakerObservationBuilder {
     func viewAgreement(
         raw: [AcousticObservation],
         enhanced: [AcousticObservation]
-    ) -> Double {
+    ) -> AcousticViewAgreement {
         let enhancedByID = Dictionary(
             uniqueKeysWithValues: enhanced.map {
                 (
@@ -403,7 +403,9 @@ private extension SpeakerObservationBuilder {
                 )
             }
         )
-        var distances: [Double] = []
+
+        var mfccShape: [Double] = []
+        var logMelShape: [Double] = []
 
         for rawObservation in raw {
             guard let enhancedObservation = enhancedByID[
@@ -412,20 +414,102 @@ private extension SpeakerObservationBuilder {
                 continue
             }
 
-            distances.append(
-                normalizedDistance(
-                    rawObservation.spectral.mfcc,
-                    enhancedObservation.spectral.mfcc
+            mfccShape.append(
+                cosineAgreement(
+                    Array(
+                        rawObservation.spectral.mfcc.dropFirst()
+                    ),
+                    Array(
+                        enhancedObservation.spectral.mfcc.dropFirst()
+                    )
+                )
+            )
+
+            logMelShape.append(
+                cosineAgreement(
+                    centered(
+                        rawObservation.spectral.logMelEnergies
+                    ),
+                    centered(
+                        enhancedObservation.spectral.logMelEnergies
+                    )
                 )
             )
         }
 
-        guard !distances.isEmpty else {
+        return .init(
+            mfccShape: mean(
+                mfccShape
+            ),
+            logMelShape: mean(
+                logMelShape
+            )
+        )
+    }
+
+    func centered(
+        _ values: [Double]
+    ) -> [Double] {
+        guard !values.isEmpty else {
+            return []
+        }
+
+        let average = mean(
+            values
+        )
+
+        return values.map {
+            $0 - average
+        }
+    }
+
+    func cosineAgreement(
+        _ lhs: [Double],
+        _ rhs: [Double]
+    ) -> Double {
+        let count = min(
+            lhs.count,
+            rhs.count
+        )
+
+        guard count > 0 else {
             return 0
         }
 
-        return exp(
-            -mean(distances) / 8
+        var dot = 0.0
+        var lhsMagnitude = 0.0
+        var rhsMagnitude = 0.0
+
+        for index in 0..<count {
+            dot += lhs[index]
+                * rhs[index]
+            lhsMagnitude += lhs[index]
+                * lhs[index]
+            rhsMagnitude += rhs[index]
+                * rhs[index]
+        }
+
+        let denominator = sqrt(
+            lhsMagnitude
+                * rhsMagnitude
+        )
+
+        guard denominator > 1e-12 else {
+            return lhsMagnitude <= 1e-12
+                && rhsMagnitude <= 1e-12
+                ? 1
+                : 0
+        }
+
+        let cosine = dot
+            / denominator
+
+        return min(
+            1,
+            max(
+                0,
+                (cosine + 1) / 2
+            )
         )
     }
 
