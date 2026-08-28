@@ -41,6 +41,7 @@ public final class AcousticAnalysisAccumulator:
     private var observations: [AcousticObservation] = []
     private var weightedNoiseFloor = 0.0
     private var noiseFloorObservationCount = 0
+    private var acousticAnalysisSeconds: TimeInterval = 0
     private var finished = false
 
     public init(
@@ -51,6 +52,16 @@ public final class AcousticAnalysisAccumulator:
 
         self.configuration = configuration
         self.batchDurationSeconds = batchDurationSeconds
+    }
+
+    public var acousticAnalysisDurationSeconds: TimeInterval {
+        lock.lock()
+
+        defer {
+            lock.unlock()
+        }
+
+        return acousticAnalysisSeconds
     }
 
     public func consume(
@@ -239,12 +250,21 @@ private extension AcousticAnalysisAccumulator {
             hostTimeSeconds: nil
         )
 
+        let analysisStarted = ProcessInfo
+            .processInfo
+            .systemUptime
+
         let analysis = try AcousticAnalyzer(
             configuration: configuration
         ).analyze(
             buffer,
             startingAt: startTime
         )
+
+        acousticAnalysisSeconds += ProcessInfo
+            .processInfo
+            .systemUptime
+            - analysisStarted
 
         observations.append(
             contentsOf: analysis.observations

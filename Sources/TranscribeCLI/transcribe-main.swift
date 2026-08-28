@@ -74,6 +74,10 @@ enum TranscribeCLI {
             result.analysis
         )
 
+        renderTiming(
+            result.timing
+        )
+
         print("")
         print("=== attributed transcript ===")
 
@@ -92,6 +96,55 @@ enum TranscribeCLI {
 }
 
 private extension TranscribeCLI {
+    static func renderTiming(
+        _ timing: AppleSpeechAnalysisTiming
+    ) {
+        print("")
+        print("=== timing ===")
+
+        print(
+            String(
+                format: "apple transcription: %.3fs",
+                timing.transcriptionSeconds
+            )
+        )
+
+        print(
+            String(
+                format: "media input + accumulation: %.3fs",
+                timing.mediaInputAndAccumulationSeconds
+            )
+        )
+
+        print(
+            String(
+                format: "acoustic DSP: %.3fs",
+                timing.acousticDSPSeconds
+            )
+        )
+
+        print(
+            String(
+                format: "speaker diarization: %.3fs",
+                timing.speakerDiarizationSeconds
+            )
+        )
+
+        print(
+            String(
+                format: "alignment: %.3fs",
+                timing.alignmentSeconds
+            )
+        )
+
+        print(
+            String(
+                format: "total wall time: %.3fs",
+                timing.totalSeconds
+            )
+        )
+    }
+
     static func renderDiagnostics(
         _ analysis: SpeechAnalysisResult
     ) {

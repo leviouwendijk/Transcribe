@@ -68,7 +68,26 @@ public struct AcousticAnalyzer: Sendable {
             ofType: Float.self
         )
 
+        let spectralPlan = AcousticSpectralPlan(
+            configuration: configuration,
+            sampleRate: buffer.sampleRate,
+            frameLength: frameLength,
+            fftSize: fftSize
+        )
+
         var unclassified: [UnclassifiedObservation] = []
+
+        unclassified.reserveCapacity(
+            max(
+                1,
+                (
+                    samples.count
+                        + hopLength
+                        - 1
+                ) / hopLength
+            )
+        )
+
         var frameStart = 0
 
         while frameStart < samples.count {
@@ -96,7 +115,8 @@ public struct AcousticAnalyzer: Sendable {
                 frame,
                 sampleRate: buffer.sampleRate,
                 fftSize: fftSize,
-                transform: transform
+                transform: transform,
+                plan: spectralPlan
             )
 
             let range = Audio.TimeRange(
@@ -247,7 +267,8 @@ private extension AcousticAnalyzer {
         _ samples: [Float],
         sampleRate: Int,
         fftSize: Int,
-        transform: vDSP.DiscreteFourierTransform<Float>
+        transform: vDSP.DiscreteFourierTransform<Float>,
+        plan: AcousticSpectralPlan
     ) -> AcousticSpectralFeatures {
         guard !samples.isEmpty else {
             return emptySpectralFeatures()
@@ -258,21 +279,13 @@ private extension AcousticAnalyzer {
             count: fftSize
         )
 
+        let window = plan.window(
+            count: samples.count
+        )
+
         for index in samples.indices {
-            let weight: Double
-
-            if samples.count <= 1 {
-                weight = 1
-            } else {
-                weight = 0.5 - 0.5 * cos(
-                    2 * Double.pi
-                    * Double(index)
-                    / Double(samples.count - 1)
-                )
-            }
-
             real[index] = samples[index]
-                * Float(weight)
+                * window[index]
         }
 
         let imaginary = Array(
@@ -313,8 +326,7 @@ private extension AcousticAnalyzer {
             return emptySpectralFeatures()
         }
 
-        let binWidth = Double(sampleRate)
-            / Double(fftSize)
+        let binWidth = plan.binWidth
 
         var weightedFrequency = 0.0
 
@@ -405,24 +417,10 @@ private extension AcousticAnalyzer {
             )
             : 0
 
-        let minimumBin = max(
-            1,
-            Int(
-                ceil(
-                    configuration.minimumPitchHz
-                    / binWidth
-                )
-            )
-        )
-
+        let minimumBin = plan.minimumPitchBin
         let maximumBin = min(
             power.count - 1,
-            Int(
-                floor(
-                    configuration.maximumPitchHz
-                    / binWidth
-                )
-            )
+            plan.maximumPitchBin
         )
 
         var pitch: Double?
@@ -465,13 +463,71 @@ private extension AcousticAnalyzer {
             voicedProbability: voicedProbability,
             mfcc: mfcc(
                 power: power,
-                sampleRate: sampleRate,
-                fftSize: fftSize
+                plan: plan
             )
         )
     }
 
     func mfcc(
+        power: [Double],
+        plan: AcousticSpectralPlan
+    ) -> [Double] {
+        guard power.reduce(0, +) > 1e-20 else {
+            return Array(
+                repeating: 0,
+                count: plan.mfccCount
+            )
+        }
+
+        var logEnergies = Array(
+            repeating: 0.0,
+            count: configuration.melFilterCount
+        )
+
+        for filter in 0..<configuration.melFilterCount {
+            let left = plan.melBins[filter]
+            let center = plan.melBins[filter + 1]
+            let right = plan.melBins[filter + 2]
+
+            var energy = 0.0
+
+            if center > left {
+                for bin in left..<center {
+                    energy += power[bin]
+                        * Double(bin - left)
+                        / Double(center - left)
+                }
+            }
+
+            if right > center {
+                for bin in center..<right {
+                    energy += power[bin]
+                        * Double(right - bin)
+                        / Double(right - center)
+                }
+            }
+
+            logEnergies[filter] = log(
+                max(
+                    energy,
+                    1e-20
+                )
+            )
+        }
+
+        return plan.dctWeights.map { weights in
+            var value = 0.0
+
+            for index in weights.indices {
+                value += logEnergies[index]
+                    * weights[index]
+            }
+
+            return value
+        }
+    }
+
+    func legacyMFCC(
         power: [Double],
         sampleRate: Int,
         fftSize: Int

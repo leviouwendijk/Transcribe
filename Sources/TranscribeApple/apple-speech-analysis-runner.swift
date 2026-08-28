@@ -4,16 +4,50 @@ import MediaAV
 import SpeechAnalysis
 import Transcribe
 
+public struct AppleSpeechAnalysisTiming: Sendable {
+    public let transcriptionSeconds: TimeInterval
+    public let mediaInputAndAccumulationSeconds: TimeInterval
+    public let acousticDSPSeconds: TimeInterval
+    public let speakerDiarizationSeconds: TimeInterval
+    public let alignmentSeconds: TimeInterval
+    public let totalSeconds: TimeInterval
+
+    public init(
+        transcriptionSeconds: TimeInterval,
+        mediaInputAndAccumulationSeconds: TimeInterval,
+        acousticDSPSeconds: TimeInterval,
+        speakerDiarizationSeconds: TimeInterval,
+        alignmentSeconds: TimeInterval,
+        totalSeconds: TimeInterval
+    ) {
+        self.transcriptionSeconds = transcriptionSeconds
+        self.mediaInputAndAccumulationSeconds = mediaInputAndAccumulationSeconds
+        self.acousticDSPSeconds = acousticDSPSeconds
+        self.speakerDiarizationSeconds = speakerDiarizationSeconds
+        self.alignmentSeconds = alignmentSeconds
+        self.totalSeconds = totalSeconds
+    }
+
+    public var diarizationSeconds: TimeInterval {
+        mediaInputAndAccumulationSeconds
+            + acousticDSPSeconds
+            + speakerDiarizationSeconds
+    }
+}
+
 public struct AppleSpeechAnalysisResult: Sendable {
     public let appleTranscription: AppleTranscriptionResult
     public let analysis: SpeechAnalysisResult
+    public let timing: AppleSpeechAnalysisTiming
 
     public init(
         appleTranscription: AppleTranscriptionResult,
-        analysis: SpeechAnalysisResult
+        analysis: SpeechAnalysisResult,
+        timing: AppleSpeechAnalysisTiming
     ) {
         self.appleTranscription = appleTranscription
         self.analysis = analysis
+        self.timing = timing
     }
 }
 
@@ -28,8 +62,9 @@ public struct AppleSpeechAnalysisRunner: Sendable {
         diarizationConfiguration: DiarizationConfiguration = .init()
     ) async throws -> AppleSpeechAnalysisResult {
         let file = file.standardizedFileURL
+        let totalStarted = uptime()
 
-        async let transcriptionTask = AppleTranscriber().transcribe(
+        async let transcriptionTask = transcribe(
             file: file,
             localeIdentifier: localeIdentifier,
             model: model
@@ -42,38 +77,86 @@ public struct AppleSpeechAnalysisRunner: Sendable {
         )
 
         let (
-            appleTranscription,
+            transcription,
             diarization
         ) = try await (
             transcriptionTask,
             diarizationTask
         )
 
+        let alignmentStarted = uptime()
+
         let alignment = SpeakerTranscriptAligner().align(
-            transcription: appleTranscription.transcription,
-            diarization: diarization
+            transcription: transcription.result.transcription,
+            diarization: diarization.result
         )
 
+        let alignmentSeconds = uptime()
+            - alignmentStarted
+
         return .init(
-            appleTranscription: appleTranscription,
+            appleTranscription: transcription.result,
             analysis: .init(
-                transcription: appleTranscription.transcription,
-                diarization: diarization,
+                transcription: transcription.result.transcription,
+                diarization: diarization.result,
                 alignment: alignment
+            ),
+            timing: .init(
+                transcriptionSeconds: transcription.seconds,
+                mediaInputAndAccumulationSeconds: diarization.mediaInputAndAccumulationSeconds,
+                acousticDSPSeconds: diarization.acousticDSPSeconds,
+                speakerDiarizationSeconds: diarization.speakerDiarizationSeconds,
+                alignmentSeconds: alignmentSeconds,
+                totalSeconds: uptime()
+                    - totalStarted
             )
         )
     }
 }
 
+private struct TimedAppleTranscription: Sendable {
+    let result: AppleTranscriptionResult
+    let seconds: TimeInterval
+}
+
+private struct TimedDiarization: Sendable {
+    let result: DiarizationResult
+    let mediaInputAndAccumulationSeconds: TimeInterval
+    let acousticDSPSeconds: TimeInterval
+    let speakerDiarizationSeconds: TimeInterval
+}
+
 private extension AppleSpeechAnalysisRunner {
+    func transcribe(
+        file: URL,
+        localeIdentifier: String,
+        model: AppleTranscriptionModel
+    ) async throws -> TimedAppleTranscription {
+        let started = uptime()
+
+        let result = try await AppleTranscriber().transcribe(
+            file: file,
+            localeIdentifier: localeIdentifier,
+            model: model
+        )
+
+        return .init(
+            result: result,
+            seconds: uptime()
+                - started
+        )
+    }
+
     func diarize(
         file: URL,
         trackID: Int32?,
         configuration: DiarizationConfiguration
-    ) async throws -> DiarizationResult {
+    ) async throws -> TimedDiarization {
         let accumulator = AcousticAnalysisAccumulator(
             configuration: configuration.acoustic
         )
+
+        let inputStarted = uptime()
 
         try await MediaAssetAudioReader().read(
             file,
@@ -85,10 +168,34 @@ private extension AppleSpeechAnalysisRunner {
         }
 
         let acoustic = try accumulator.finish()
+        let inputTotalSeconds = uptime()
+            - inputStarted
+        let acousticDSPSeconds = accumulator
+            .acousticAnalysisDurationSeconds
 
-        return Diarizer().diarize(
+        let speakerStarted = uptime()
+
+        let result = Diarizer().diarize(
             acoustic,
             configuration: configuration
         )
+
+        let speakerSeconds = uptime()
+            - speakerStarted
+
+        return .init(
+            result: result,
+            mediaInputAndAccumulationSeconds: max(
+                0,
+                inputTotalSeconds
+                    - acousticDSPSeconds
+            ),
+            acousticDSPSeconds: acousticDSPSeconds,
+            speakerDiarizationSeconds: speakerSeconds
+        )
+    }
+
+    func uptime() -> TimeInterval {
+        ProcessInfo.processInfo.systemUptime
     }
 }
