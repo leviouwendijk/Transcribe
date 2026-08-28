@@ -1,5 +1,5 @@
 {
-  "originHash" : "e6ec13e92301f6d1cecb227f11309b2fed96ba6f1f993cf47676cfe1550defbe",
+  "originHash" : "8f88fe2107b8d3dc34ce2c3b791e42e892e91080ba29dab3a25f9e4375e260da",
   "pins" : [
     {
       "identity" : "ansi",
@@ -52,7 +52,7 @@
       "location" : "https://github.com/leviouwendijk/Media.git",
       "state" : {
         "branch" : "master",
-        "revision" : "bfbda04df20ea5e8835aba0898cbf6a4c545139f"
+        "revision" : "06bf0fad84dda65a801315ca5598a720cca35cdc"
       }
     },
     {
@@ -97,7 +97,7 @@
       "location" : "https://github.com/leviouwendijk/Primitives.git",
       "state" : {
         "branch" : "master",
-        "revision" : "7992ebc66ba098758e574befc1b869978b38e82c"
+        "revision" : "685ba8ee4bc678c957502e7dde25c59d0c192d4a"
       }
     },
     {

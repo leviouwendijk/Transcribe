@@ -52,6 +52,59 @@ extension TranscribeFlowSuite {
                 )
             }
 
+            Step("parallel analysis normalizes high-rate input once before both views") {
+                let sampleRate = 48_000
+                let samples = AudioTestFixture.sine(
+                    frequency: 181,
+                    duration: 0.8,
+                    sampleRate: sampleRate
+                )
+                let accumulator = ParallelAcousticAnalysisAccumulator(
+                    batchDurationSeconds: 1
+                )
+
+                try accumulator.consume(
+                    .init(
+                        trackID: 1,
+                        buffer: AudioTestFixture.buffer(
+                            samples: samples,
+                            sampleRate: sampleRate
+                        ),
+                        presentationTimeSeconds: 2,
+                        durationSeconds: 0.8
+                    )
+                )
+
+                let evidence = try accumulator.finish()
+
+                try Expect.equal(
+                    evidence.raw.sampleRate,
+                    16_000,
+                    "parallel-acoustic.normalized-raw-rate"
+                )
+
+                try Expect.equal(
+                    evidence.enhanced.sampleRate,
+                    16_000,
+                    "parallel-acoustic.normalized-enhanced-rate"
+                )
+
+                try Expect.equal(
+                    evidence.raw.observations.count,
+                    evidence.enhanced.observations.count,
+                    "parallel-acoustic.normalized-alignment"
+                )
+
+                try Expect.equal(
+                    evidence.raw.observations.allSatisfy {
+                        $0.range.start >= 2
+                            && $0.range.end <= 2.81
+                    },
+                    true,
+                    "parallel-acoustic.normalized-timeline"
+                )
+            }
+
             Step("enhanced branch can recover low-level voiced evidence without replacing raw evidence") {
                 let samples = AudioTestFixture.sine(
                     frequency: 180,

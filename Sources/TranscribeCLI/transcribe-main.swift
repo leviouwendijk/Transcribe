@@ -158,6 +158,10 @@ private extension TranscribeCLI {
         let acoustic = diarization.acoustic
 
         print(
+            "analysis sample rate: \(acoustic?.sampleRate ?? 0) Hz"
+        )
+
+        print(
             "acoustic observations: \(acoustic?.observations.count ?? 0)"
         )
 

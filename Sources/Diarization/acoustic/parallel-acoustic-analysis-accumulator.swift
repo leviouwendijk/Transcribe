@@ -8,6 +8,7 @@ public final class ParallelAcousticAnalysisAccumulator:
     private let lock = NSLock()
     private let raw: AcousticAnalysisAccumulator
     private let enhanced: AcousticAnalysisAccumulator
+    private var converter: Audio.Processing.AnalysisFormatConverter
     private var enhancer: Audio.Processing.AnalysisEnhancer
     private var telemetry: [Audio.Processing.Telemetry] = []
     private var finished = false
@@ -15,6 +16,7 @@ public final class ParallelAcousticAnalysisAccumulator:
     public init(
         configuration: AcousticAnalyzerConfiguration = .init(),
         enhancement: Audio.Processing.AnalysisEnhancer.Configuration = .init(),
+        analysisSampleRate: Int = 16_000,
         batchDurationSeconds: Double = 4
     ) {
         raw = .init(
@@ -24,6 +26,9 @@ public final class ParallelAcousticAnalysisAccumulator:
         enhanced = .init(
             configuration: configuration,
             batchDurationSeconds: batchDurationSeconds
+        )
+        converter = .init(
+            targetSampleRate: analysisSampleRate
         )
         enhancer = .init(
             configuration: enhancement
@@ -46,12 +51,41 @@ public final class ParallelAcousticAnalysisAccumulator:
 
         precondition(!finished)
 
+        let conversion = converter.process(
+            chunk.buffer
+        )
+
+        guard conversion.buffer.frameCount > 0 else {
+            return
+        }
+
+        let originalStart = chunk.timeRange?.start
+            ?? chunk.presentationTimeSeconds
+            ?? chunk.buffer.hostTimeSeconds
+
+        let normalizedStart = originalStart.map {
+            $0 + conversion.sourceOffsetSeconds
+        }
+
+        let normalizedDuration = Double(
+            conversion.buffer.frameCount
+        ) / Double(
+            conversion.buffer.sampleRate
+        )
+
+        let normalized = MediaAudioChunk(
+            trackID: chunk.trackID,
+            buffer: conversion.buffer,
+            presentationTimeSeconds: normalizedStart,
+            durationSeconds: normalizedDuration
+        )
+
         try raw.consume(
-            chunk
+            normalized
         )
 
         let result = enhancer.process(
-            chunk.buffer
+            normalized.buffer
         )
 
         telemetry.append(
@@ -60,10 +94,10 @@ public final class ParallelAcousticAnalysisAccumulator:
 
         try enhanced.consume(
             .init(
-                trackID: chunk.trackID,
+                trackID: normalized.trackID,
                 buffer: result.buffer,
-                presentationTimeSeconds: chunk.presentationTimeSeconds,
-                durationSeconds: chunk.durationSeconds
+                presentationTimeSeconds: normalized.presentationTimeSeconds,
+                durationSeconds: normalized.durationSeconds
             )
         )
     }
