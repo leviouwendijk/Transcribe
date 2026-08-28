@@ -177,6 +177,28 @@ private extension TranscribeCLI {
             "speaker segments: \(diarization.segments.count)"
         )
 
+        if let transcription = analysis.transcription,
+           let alignment = analysis.alignment {
+            let assigned = alignment.assignments.count
+            let total = transcription.segments.count
+
+            print(
+                "transcript assignments: \(assigned)/\(total) assigned, \(max(0, total - assigned)) unassigned"
+            )
+
+            print(
+                "direct assignments: \(alignment.assignments(using: .temporalOverlap).count)"
+            )
+
+            print(
+                "bridged assignments: \(alignment.assignments(using: .bridgedGap).count)"
+            )
+
+            print(
+                "nearest assignments: \(alignment.assignments(using: .nearestEvidence).count)"
+            )
+        }
+
         for profile in diarization.profiles.sorted(by: {
             $0.speaker.rawValue < $1.speaker.rawValue
         }) {

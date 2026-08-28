@@ -13,6 +13,7 @@ enum TranscribeFlowSuite: TestFlowRegistry {
         sessionClusteringFlow,
         diarizationFlow,
         alignmentFlow,
+        alignmentInferenceFlow,
         appleContractFlow,
     ]
 }
