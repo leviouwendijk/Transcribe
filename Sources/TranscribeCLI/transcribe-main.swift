@@ -10,7 +10,7 @@ enum TranscribeCLI {
 
         guard arguments.count >= 2 else {
             print(
-                "usage: transcribe <audio-file> [locale] [speech|dictation] [speaker-count]"
+                "usage: transcribe <audio-file> [locale] [speech|dictation] [speaker-count] [trace-output.csv]"
             )
             return
         }
@@ -73,6 +73,27 @@ enum TranscribeCLI {
         renderDiagnostics(
             result.analysis
         )
+
+        if arguments.count >= 6,
+           let diarization = result.analysis.diarization {
+            let tracePath = NSString(
+                string: arguments[5]
+            ).expandingTildeInPath
+
+            try diarization
+                .acousticTraceCSV()
+                .write(
+                    to: URL(
+                        fileURLWithPath: tracePath
+                    ),
+                    atomically: true,
+                    encoding: .utf8
+                )
+
+            print(
+                "acoustic trace: \(tracePath)"
+            )
+        }
 
         renderTiming(
             result.timing

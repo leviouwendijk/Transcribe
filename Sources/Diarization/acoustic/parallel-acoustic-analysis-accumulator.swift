@@ -10,7 +10,7 @@ public final class ParallelAcousticAnalysisAccumulator:
     private let enhanced: AcousticAnalysisAccumulator
     private var converter: Audio.Processing.AnalysisFormatConverter
     private var enhancer: Audio.Processing.AnalysisEnhancer
-    private var telemetry: [Audio.Processing.Telemetry] = []
+    private var enhancementBlocks: [AcousticEnhancementBlock] = []
     private var finished = false
 
     public init(
@@ -88,8 +88,13 @@ public final class ParallelAcousticAnalysisAccumulator:
             normalized.buffer
         )
 
-        telemetry.append(
-            result.telemetry
+        enhancementBlocks.append(
+            .init(
+                range: normalized.timeRange,
+                inputRMSDB: result.telemetry.inputRMSDB,
+                outputRMSDB: result.telemetry.outputRMSDB,
+                appliedGainDB: result.telemetry.appliedGainDB
+            )
         )
 
         try enhanced.consume(
@@ -132,15 +137,7 @@ public final class ParallelAcousticAnalysisAccumulator:
                 analysis: rawAnalysis
             ),
             enhancement: .init(
-                appliedGainDB: telemetry.map(
-                    \.appliedGainDB
-                ),
-                inputRMSDB: telemetry.map(
-                    \.inputRMSDB
-                ),
-                outputRMSDB: telemetry.map(
-                    \.outputRMSDB
-                ),
+                blocks: enhancementBlocks,
                 recoveredUsableObservationCount: enhancedUsable
                     .subtracting(rawUsable)
                     .count

@@ -1,4 +1,5 @@
 import Foundation
+import MediaCore
 
 public struct AcousticNoiseProfile:
     Sendable,
@@ -92,11 +93,35 @@ public struct AcousticNoiseProfile:
     }
 }
 
+public struct AcousticEnhancementBlock:
+    Sendable,
+    Codable,
+    Hashable
+{
+    public let range: Audio.TimeRange?
+    public let inputRMSDB: Double
+    public let outputRMSDB: Double
+    public let appliedGainDB: Double
+
+    public init(
+        range: Audio.TimeRange?,
+        inputRMSDB: Double,
+        outputRMSDB: Double,
+        appliedGainDB: Double
+    ) {
+        self.range = range
+        self.inputRMSDB = inputRMSDB
+        self.outputRMSDB = outputRMSDB
+        self.appliedGainDB = appliedGainDB
+    }
+}
+
 public struct AcousticEnhancementSummary:
     Sendable,
     Codable,
     Hashable
 {
+    public let blocks: [AcousticEnhancementBlock]
     public let blockCount: Int
     public let appliedGainDB: AcousticDistribution
     public let inputRMSDB: AcousticDistribution
@@ -104,20 +129,25 @@ public struct AcousticEnhancementSummary:
     public let recoveredUsableObservationCount: Int
 
     public init(
-        appliedGainDB: [Double],
-        inputRMSDB: [Double],
-        outputRMSDB: [Double],
+        blocks: [AcousticEnhancementBlock],
         recoveredUsableObservationCount: Int
     ) {
-        blockCount = appliedGainDB.count
-        self.appliedGainDB = .init(
-            values: appliedGainDB
+        self.blocks = blocks
+        blockCount = blocks.count
+        appliedGainDB = .init(
+            values: blocks.map(
+                \.appliedGainDB
+            )
         )
-        self.inputRMSDB = .init(
-            values: inputRMSDB
+        inputRMSDB = .init(
+            values: blocks.map(
+                \.inputRMSDB
+            )
         )
-        self.outputRMSDB = .init(
-            values: outputRMSDB
+        outputRMSDB = .init(
+            values: blocks.map(
+                \.outputRMSDB
+            )
         )
         self.recoveredUsableObservationCount = recoveredUsableObservationCount
     }
