@@ -72,6 +72,10 @@ let package = Package(
                     name: "MediaCore",
                     package: "Media"
                 ),
+                .product(
+                    name: "MediaAudio",
+                    package: "Media"
+                ),
             ]
         ),
         .target(

@@ -84,6 +84,26 @@ public struct Diarizer: Sendable {
     }
 
     public func diarize(
+        _ evidence: ParallelAcousticEvidence,
+        configuration: DiarizationConfiguration = .init()
+    ) -> DiarizationResult {
+        let result = diarize(
+            evidence.raw,
+            configuration: configuration
+        )
+
+        return .init(
+            segments: result.segments,
+            profiles: result.profiles,
+            observations: result.observations,
+            acoustic: evidence.raw,
+            enhancedAcoustic: evidence.enhanced,
+            noiseProfile: evidence.noise,
+            enhancement: evidence.enhancement
+        )
+    }
+
+    public func diarize(
         _ analysis: AcousticAnalysis,
         configuration: DiarizationConfiguration = .init()
     ) -> DiarizationResult {

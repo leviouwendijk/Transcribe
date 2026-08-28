@@ -108,17 +108,26 @@ public struct DiarizationResult:
     public let profiles: [SpeakerProfile]
     public let observations: [SpeakerObservation]
     public let acoustic: AcousticAnalysis?
+    public let enhancedAcoustic: AcousticAnalysis?
+    public let noiseProfile: AcousticNoiseProfile?
+    public let enhancement: AcousticEnhancementSummary?
 
     public init(
         segments: [SpeakerSegment],
         profiles: [SpeakerProfile] = [],
         observations: [SpeakerObservation] = [],
-        acoustic: AcousticAnalysis? = nil
+        acoustic: AcousticAnalysis? = nil,
+        enhancedAcoustic: AcousticAnalysis? = nil,
+        noiseProfile: AcousticNoiseProfile? = nil,
+        enhancement: AcousticEnhancementSummary? = nil
     ) {
         self.segments = segments
         self.profiles = profiles
         self.observations = observations
         self.acoustic = acoustic
+        self.enhancedAcoustic = enhancedAcoustic
+        self.noiseProfile = noiseProfile
+        self.enhancement = enhancement
     }
 
     public var speakers: [SpeakerID] {

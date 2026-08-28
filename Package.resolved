@@ -1,5 +1,5 @@
 {
-  "originHash" : "0cd1cfd208996474f2291d2931fae2684eaac3ae02bc17da67801ea648824b84",
+  "originHash" : "e6ec13e92301f6d1cecb227f11309b2fed96ba6f1f993cf47676cfe1550defbe",
   "pins" : [
     {
       "identity" : "ansi",
@@ -52,7 +52,7 @@
       "location" : "https://github.com/leviouwendijk/Media.git",
       "state" : {
         "branch" : "master",
-        "revision" : "85aeaf7bc5617c8dc01a98c1a16e7c4ced026a44"
+        "revision" : "bfbda04df20ea5e8835aba0898cbf6a4c545139f"
       }
     },
     {
@@ -79,7 +79,7 @@
       "location" : "https://github.com/leviouwendijk/Path.git",
       "state" : {
         "branch" : "master",
-        "revision" : "c1a58e68e7dda471ecad02585b2cd340fd6d1197"
+        "revision" : "8f99bc23b206ce37b81dcedf86142e795932cb19"
       }
     },
     {

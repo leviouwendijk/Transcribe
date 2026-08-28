@@ -166,6 +166,29 @@ private extension TranscribeCLI {
         )
 
         print(
+            "enhanced usable observations: \(diarization.enhancedAcoustic?.usableObservations.count ?? 0)"
+        )
+
+        print(
+            "recovered enhanced observations: \(diarization.enhancement?.recoveredUsableObservationCount ?? 0)"
+        )
+
+        print(
+            "noise profile observations: \(diarization.noiseProfile?.observationCount ?? 0)"
+        )
+
+        if let enhancement = diarization.enhancement {
+            print(
+                String(
+                    format: "enhancement gain median=%.2fdB q10=%.2fdB q90=%.2fdB",
+                    enhancement.appliedGainDB.median,
+                    enhancement.appliedGainDB.q10,
+                    enhancement.appliedGainDB.q90
+                )
+            )
+        }
+
+        print(
             "speaker observations: \(diarization.observations.count)"
         )
 

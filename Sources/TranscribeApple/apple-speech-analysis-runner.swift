@@ -152,7 +152,7 @@ private extension AppleSpeechAnalysisRunner {
         trackID: Int32?,
         configuration: DiarizationConfiguration
     ) async throws -> TimedDiarization {
-        let accumulator = AcousticAnalysisAccumulator(
+        let accumulator = ParallelAcousticAnalysisAccumulator(
             configuration: configuration.acoustic
         )
 
@@ -167,7 +167,7 @@ private extension AppleSpeechAnalysisRunner {
             )
         }
 
-        let acoustic = try accumulator.finish()
+        let evidence = try accumulator.finish()
         let inputTotalSeconds = uptime()
             - inputStarted
         let acousticDSPSeconds = accumulator
@@ -176,7 +176,7 @@ private extension AppleSpeechAnalysisRunner {
         let speakerStarted = uptime()
 
         let result = Diarizer().diarize(
-            acoustic,
+            evidence,
             configuration: configuration
         )
 
