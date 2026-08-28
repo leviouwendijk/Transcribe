@@ -186,6 +186,7 @@ public final class AcousticAnalysisAccumulator:
                 range: observation.range,
                 signal: observation.signal,
                 spectral: observation.spectral,
+                consistency: observation.consistency,
                 activity: observation.activity,
                 quality: observation.quality
             )

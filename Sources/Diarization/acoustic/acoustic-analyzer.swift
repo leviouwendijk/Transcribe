@@ -173,10 +173,16 @@ public struct AcousticAnalyzer: Sendable {
             )
         }
 
-        return .init(
+        let analysis = AcousticAnalysis(
             sampleRate: buffer.sampleRate,
             noiseFloorRMS: noiseFloor,
             observations: observations
+        )
+
+        return .init(
+            sampleRate: analysis.sampleRate,
+            noiseFloorRMS: analysis.noiseFloorRMS,
+            observations: analysis.observationsWithConsistency()
         )
     }
 
@@ -454,6 +460,11 @@ private extension AcousticAnalyzer {
             }
         }
 
+        let cepstral = cepstralFeatures(
+            power: power,
+            plan: plan
+        )
+
         return .init(
             centroidHz: centroid,
             spreadHz: spread,
@@ -461,21 +472,28 @@ private extension AcousticAnalyzer {
             flatness: flatness,
             pitchHz: pitch,
             voicedProbability: voicedProbability,
-            mfcc: mfcc(
-                power: power,
-                plan: plan
-            )
+            logMelEnergies: cepstral.logMelEnergies,
+            mfcc: cepstral.mfcc
         )
     }
 
-    func mfcc(
+    func cepstralFeatures(
         power: [Double],
         plan: AcousticSpectralPlan
-    ) -> [Double] {
+    ) -> (
+        logMelEnergies: [Double],
+        mfcc: [Double]
+    ) {
         guard power.reduce(0, +) > 1e-20 else {
-            return Array(
-                repeating: 0,
-                count: plan.mfccCount
+            return (
+                Array(
+                    repeating: log(1e-20),
+                    count: configuration.melFilterCount
+                ),
+                Array(
+                    repeating: 0,
+                    count: plan.mfccCount
+                )
             )
         }
 
@@ -488,7 +506,6 @@ private extension AcousticAnalyzer {
             let left = plan.melBins[filter]
             let center = plan.melBins[filter + 1]
             let right = plan.melBins[filter + 2]
-
             var energy = 0.0
 
             if center > left {
@@ -515,7 +532,7 @@ private extension AcousticAnalyzer {
             )
         }
 
-        return plan.dctWeights.map { weights in
+        let coefficients = plan.dctWeights.map { weights in
             var value = 0.0
 
             for index in weights.indices {
@@ -525,6 +542,11 @@ private extension AcousticAnalyzer {
 
             return value
         }
+
+        return (
+            logEnergies,
+            coefficients
+        )
     }
 
     func legacyMFCC(
@@ -813,6 +835,10 @@ private extension AcousticAnalyzer {
             flatness: 0,
             pitchHz: nil,
             voicedProbability: 0,
+            logMelEnergies: Array(
+                repeating: log(1e-20),
+                count: configuration.melFilterCount
+            ),
             mfcc: Array(
                 repeating: 0,
                 count: configuration.mfccCount

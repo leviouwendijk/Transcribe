@@ -82,6 +82,7 @@ public struct AcousticSpectralFeatures:
     public let flatness: Double
     public let pitchHz: Double?
     public let voicedProbability: Double
+    public let logMelEnergies: [Double]
     public let mfcc: [Double]
 
     public init(
@@ -91,6 +92,7 @@ public struct AcousticSpectralFeatures:
         flatness: Double,
         pitchHz: Double?,
         voicedProbability: Double,
+        logMelEnergies: [Double] = [],
         mfcc: [Double]
     ) {
         self.centroidHz = centroidHz
@@ -99,8 +101,40 @@ public struct AcousticSpectralFeatures:
         self.flatness = flatness
         self.pitchHz = pitchHz
         self.voicedProbability = voicedProbability
+        self.logMelEnergies = logMelEnergies
         self.mfcc = mfcc
     }
+}
+
+public struct AcousticConsistencyFeatures:
+    Sendable,
+    Codable,
+    Hashable
+{
+    public let energyDeltaDB: Double
+    public let spectralDelta: Double
+    public let mfccDelta: Double
+    public let pitchDeltaSemitones: Double?
+    public let consistencyScore: Double
+    public let transientLikelihood: Double
+
+    public init(
+        energyDeltaDB: Double = 0,
+        spectralDelta: Double = 0,
+        mfccDelta: Double = 0,
+        pitchDeltaSemitones: Double? = nil,
+        consistencyScore: Double = 1,
+        transientLikelihood: Double = 0
+    ) {
+        self.energyDeltaDB = energyDeltaDB
+        self.spectralDelta = spectralDelta
+        self.mfccDelta = mfccDelta
+        self.pitchDeltaSemitones = pitchDeltaSemitones
+        self.consistencyScore = consistencyScore
+        self.transientLikelihood = transientLikelihood
+    }
+
+    public static let neutral = Self()
 }
 
 public struct AcousticQuality:
@@ -132,6 +166,7 @@ public struct AcousticObservation:
     public let range: Audio.TimeRange
     public let signal: AcousticSignalFeatures
     public let spectral: AcousticSpectralFeatures
+    public let consistency: AcousticConsistencyFeatures
     public let activity: AcousticActivity
     public let quality: AcousticQuality
 
@@ -140,6 +175,7 @@ public struct AcousticObservation:
         range: Audio.TimeRange,
         signal: AcousticSignalFeatures,
         spectral: AcousticSpectralFeatures,
+        consistency: AcousticConsistencyFeatures = .neutral,
         activity: AcousticActivity,
         quality: AcousticQuality
     ) {
@@ -147,6 +183,7 @@ public struct AcousticObservation:
         self.range = range
         self.signal = signal
         self.spectral = spectral
+        self.consistency = consistency
         self.activity = activity
         self.quality = quality
     }
