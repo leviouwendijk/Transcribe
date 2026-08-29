@@ -75,11 +75,11 @@ public protocol SpeakerEmbeddingProvider: Sendable {
 public struct SpeakerEmbeddingEnricher: Sendable {
     public init() {}
 
-    public func enrich<Provider: SpeakerEmbeddingProvider>(
+    public func enrich(
         _ observations: [SpeakerObservation],
         audio: MediaAudioBuffer,
         startingAt: TimeInterval = 0,
-        using provider: Provider
+        using provider: any SpeakerEmbeddingProvider
     ) async throws -> [SpeakerObservation] {
         guard !observations.isEmpty else {
             return observations

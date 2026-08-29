@@ -32,6 +32,10 @@ enum TranscribeModelArgument: String, Sendable, ArgumentValue {
     }
 }
 
+enum TranscribeSpeakerEmbeddingArgument: String, Sendable, ArgumentValue {
+    case fluidAudio = "fluid-audio"
+}
+
 enum TranscribeContextDetailArgument: String, Sendable, ArgumentValue {
     case conversation
     case diagnostic
@@ -59,6 +63,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
     let speakerAblation: Bool
     let speakerAblationDetail: Bool
     let speakerCalibration: Bool
+    let speakerEmbeddings: TranscribeSpeakerEmbeddingArgument?
 
     init(arguments: Payload) throws {
         let audioFile = clean(arguments.audioFile)
@@ -111,6 +116,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
         speakerAblation = arguments.speakerAblation
         speakerAblationDetail = arguments.speakerAblationDetail
         speakerCalibration = arguments.speakerCalibration
+        speakerEmbeddings = arguments.speakerEmbeddings
     }
 
     struct Payload: ArgumentGroup {
@@ -188,6 +194,12 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
             help: "Replay experimental speaker feature weighting without changing production defaults."
         )
         var speakerCalibration: Bool
+
+        @Opt(
+            "speaker-embeddings",
+            help: "Acquire retained speaker embeddings: fluid-audio."
+        )
+        var speakerEmbeddings: TranscribeSpeakerEmbeddingArgument?
 
         init() {}
     }

@@ -4,6 +4,81 @@ import SpeechAnalysisContext
 import Terminal
 
 enum TranscribeTerminalRenderer {
+    static func renderSpeakerEmbeddings(
+        _ diarization: DiarizationResult?,
+        requestedProvider: String
+    ) {
+        let observations = diarization?.observations ?? []
+        let embeddings = observations.compactMap(\.embedding)
+        let first = embeddings.first
+        let profileCount = diarization?.profiles.filter {
+            $0.embeddingProfile != nil
+        }.count ?? 0
+        var items: [TerminalDetailItem] = [
+            .field(
+                label: "requested provider",
+                value: requestedProvider
+            ),
+            .field(
+                label: "requested observations",
+                value: String(observations.count)
+            ),
+            .field(
+                label: "embedded observations",
+                value: String(embeddings.count)
+            ),
+            .field(
+                label: "missing observations",
+                value: String(
+                    max(
+                        0,
+                        observations.count - embeddings.count
+                    )
+                )
+            ),
+            .field(
+                label: "profiles with embeddings",
+                value: String(profileCount)
+            ),
+        ]
+
+        if let first {
+            items.append(
+                .field(
+                    label: "provider",
+                    value: first.provenance?.providerIdentifier
+                        ?? requestedProvider
+                )
+            )
+            items.append(
+                .field(
+                    label: "model",
+                    value: first.provenance?.modelIdentifier
+                        ?? "unknown"
+                )
+            )
+            items.append(
+                .field(
+                    label: "dimension",
+                    value: String(first.dimension)
+                )
+            )
+            items.append(
+                .field(
+                    label: "normalization",
+                    value: first.provenance?.normalization.rawValue
+                        ?? "unknown"
+                )
+            )
+        }
+
+        render(
+            title: "Speaker embeddings",
+            section: "acquisition",
+            items: items
+        )
+    }
+
     static func renderExports(
         trace: URL?,
         context: URL?,

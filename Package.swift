@@ -170,6 +170,10 @@ let package = Package(
                     package: "Media"
                 ),
                 .product(
+                    name: "MediaAudio",
+                    package: "Media"
+                ),
+                .product(
                     name: "MediaAV",
                     package: "Media"
                 ),
@@ -180,6 +184,7 @@ let package = Package(
             dependencies: [
                 "TranscribeApple",
                 "Diarization",
+                "EmbeddingProviderFluidAudio",
                 "SpeechAnalysis",
                 "SpeechAnalysisContext",
                 .product(

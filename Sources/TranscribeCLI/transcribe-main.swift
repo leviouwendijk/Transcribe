@@ -70,6 +70,15 @@ extension TranscribeCLI {
             )
         )
 
+        if timing.speakerEmbeddingSeconds > 0 {
+            print(
+                String(
+                    format: "speaker embeddings: %.3fs",
+                    timing.speakerEmbeddingSeconds
+                )
+            )
+        }
+
         print(
             String(
                 format: "alignment: %.3fs",

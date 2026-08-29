@@ -1,20 +1,44 @@
 import Diarization
+import EmbeddingProviderFluidAudio
 import Foundation
 import SpeechAnalysisContext
 import TranscribeApple
 
 enum TranscribeCommandRunner {
     static func run(_ options: TranscribeCommandOptions) async throws {
-        let result = try await AppleSpeechAnalysisRunner().analyze(
-            file: options.file,
-            localeIdentifier: options.localeIdentifier,
-            model: options.model,
-            diarizationConfiguration: .init(
-                expectedSpeakerCount: options.expectedSpeakerCount
-            )
+        let diarizationConfiguration = DiarizationConfiguration(
+            expectedSpeakerCount: options.expectedSpeakerCount
         )
+        let runner = AppleSpeechAnalysisRunner()
+        let result: AppleSpeechAnalysisResult
+
+        switch options.speakerEmbeddings {
+        case .none:
+            result = try await runner.analyze(
+                file: options.file,
+                localeIdentifier: options.localeIdentifier,
+                model: options.model,
+                diarizationConfiguration: diarizationConfiguration
+            )
+
+        case .some(.fluidAudio):
+            result = try await runner.analyze(
+                file: options.file,
+                localeIdentifier: options.localeIdentifier,
+                model: options.model,
+                diarizationConfiguration: diarizationConfiguration,
+                speakerEmbeddingProvider: FluidAudioSpeakerEmbeddingProvider()
+            )
+        }
 
         TranscribeCLI.renderDiagnostics(result.analysis)
+
+        if let requestedProvider = options.speakerEmbeddings {
+            TranscribeTerminalRenderer.renderSpeakerEmbeddings(
+                result.analysis.diarization,
+                requestedProvider: requestedProvider.rawValue
+            )
+        }
 
         var traceOutput: URL?
         if let requested = options.traceOutput,
