@@ -27,7 +27,7 @@ public struct AcousticAnalyzerConfiguration:
         minimumFFTSize: Int = 1024,
         rolloffFraction: Double = 0.85,
         minimumPitchHz: Double = 70,
-        maximumPitchHz: Double = 350,
+        maximumPitchHz: Double = 450,
         minimumPitchEvidence: Double = 0.12,
         minimumPitchConfidence: Double = 0.15,
         silenceRMS: Double = 0.006,

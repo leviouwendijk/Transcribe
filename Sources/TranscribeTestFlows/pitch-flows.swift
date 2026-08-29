@@ -91,6 +91,105 @@ extension TranscribeFlowSuite {
                 )
             }
 
+            Step("harmonic-only evidence does not pin to the lower search boundary") {
+                let second = AudioTestFixture.sine(
+                    frequency: 156.25,
+                    duration: 0.6,
+                    amplitude: 0.18
+                )
+                let third = AudioTestFixture.sine(
+                    frequency: 234.375,
+                    duration: 0.6,
+                    amplitude: 0.18
+                )
+
+                let samples = zip(
+                    second,
+                    third
+                ).map {
+                    $0 + $1
+                }
+
+                let analysis = try AcousticAnalyzer().analyze(
+                    AudioTestFixture.buffer(
+                        samples: samples
+                    )
+                )
+
+                let pitches = analysis.observations.compactMap {
+                    $0.spectral.pitchHz
+                }
+
+                try Expect.equal(
+                    pitches.isEmpty,
+                    false,
+                    "pitch.lower-bound.non-empty"
+                )
+
+                let lowerBoundaryCount = pitches.filter {
+                    abs($0 - 78.125) < 1
+                }.count
+
+                try Expect.equal(
+                    Double(lowerBoundaryCount)
+                        / Double(pitches.count)
+                        < 0.10,
+                    true,
+                    "pitch.lower-bound.not-pinned"
+                )
+
+                let sorted = pitches.sorted()
+                let median = sorted[
+                    sorted.count / 2
+                ]
+
+                try Expect.equal(
+                    median > 120,
+                    true,
+                    "pitch.lower-bound.prefers-present-fundamental"
+                )
+            }
+
+            Step("pitch search retains fundamentals above the legacy ceiling") {
+                let target = 420.0
+                let analysis = try AcousticAnalyzer().analyze(
+                    AudioTestFixture.buffer(
+                        samples: AudioTestFixture.sine(
+                            frequency: target,
+                            duration: 0.6,
+                            amplitude: 0.18
+                        )
+                    )
+                )
+
+                let pitches = analysis.observations.compactMap {
+                    $0.spectral.pitchHz
+                }
+
+                try Expect.equal(
+                    pitches.isEmpty,
+                    false,
+                    "pitch.upper-range.non-empty"
+                )
+
+                let sorted = pitches.sorted()
+                let median = sorted[
+                    sorted.count / 2
+                ]
+
+                try Expect.equal(
+                    abs(median - target) < 6,
+                    true,
+                    "pitch.upper-range.accuracy"
+                )
+
+                try Expect.equal(
+                    median > 350,
+                    true,
+                    "pitch.upper-range.above-legacy-ceiling"
+                )
+            }
+
             Step("silence does not invent confident pitch") {
                 let analysis = try AcousticAnalyzer().analyze(
                     AudioTestFixture.buffer(

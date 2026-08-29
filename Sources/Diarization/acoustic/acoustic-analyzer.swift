@@ -453,11 +453,38 @@ private extension AcousticAnalyzer {
             var bestBin = minimumBin
             var bestScore = 0.0
 
+            let lowerBoundaryPresenceFloor = 0.25
+
             for candidate in minimumBin...maximumBin {
-                let score = harmonicPitchScore(
+                let rawScore = harmonicPitchScore(
                     candidateBin: candidate,
                     power: power
                 )
+
+                let candidateFundamentalPresence = dominantPower > 1e-20
+                    ? min(
+                        1,
+                        sqrt(
+                            max(
+                                0,
+                                power[candidate]
+                                    / dominantPower
+                            )
+                        )
+                    )
+                    : 0
+
+                let score: Double
+
+                if candidate == minimumBin,
+                   candidateFundamentalPresence
+                    < lowerBoundaryPresenceFloor {
+                    score = rawScore
+                        * candidateFundamentalPresence
+                        / lowerBoundaryPresenceFloor
+                } else {
+                    score = rawScore
+                }
 
                 scores[candidate - minimumBin] = score
 
@@ -507,7 +534,7 @@ private extension AcousticAnalyzer {
                     )
                     : 0
 
-                pitchConfidence = min(
+                let basePitchConfidence = min(
                     1,
                     max(
                         0,
@@ -516,6 +543,14 @@ private extension AcousticAnalyzer {
                             + 0.15 * margin
                     )
                 )
+
+                let boundaryConfidenceScale = bestBin == minimumBin
+                    || bestBin == maximumBin
+                    ? 0.80
+                    : 1
+
+                pitchConfidence = basePitchConfidence
+                    * boundaryConfidenceScale
 
                 if voicedProbability
                     >= configuration.minimumPitchEvidence,
