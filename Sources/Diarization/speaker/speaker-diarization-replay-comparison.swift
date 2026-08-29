@@ -56,13 +56,16 @@ public struct SpeakerDiarizationAblationReport:
 {
     public let ablation: SpeakerFeatureAblationTarget
     public let comparison: SpeakerDiarizationReplayComparison
+    public let clustering: SpeakerClusteringNormalizedEvaluation?
 
     public init(
         ablation: SpeakerFeatureAblationTarget,
-        comparison: SpeakerDiarizationReplayComparison
+        comparison: SpeakerDiarizationReplayComparison,
+        clustering: SpeakerClusteringNormalizedEvaluation? = nil
     ) {
         self.ablation = ablation
         self.comparison = comparison
+        self.clustering = clustering
     }
 
     public var summary: SpeakerDiarizationReplaySummary {
@@ -72,7 +75,9 @@ public struct SpeakerDiarizationAblationReport:
             segmentCount: comparison.segmentCount,
             changedAcousticAssignmentCount: comparison.acousticChanges.count,
             changedResolvedAssignmentCount: comparison.resolvedChanges.count,
-            reliabilityWeightedSquaredError: comparison.reliabilityWeightedSquaredError
+            reliabilityWeightedSquaredError: comparison.reliabilityWeightedSquaredError,
+            normalizedReliabilityWeightedSquaredError: clustering?
+                .normalizedReliabilityWeightedSquaredError
         )
     }
 }
@@ -165,7 +170,9 @@ public extension Diarizer {
                 comparison: compare(
                     source,
                     to: replayed
-                )
+                ),
+                clustering: replayed.method?
+                    .normalizedClusteringEvaluation
             )
         }
     }

@@ -79,17 +79,136 @@ enum TranscribeTerminalRenderer {
             }
         )
     }
+
+    static func renderSpeakerCalibration(
+        _ experiment: SpeakerDiarizationReplayExperiment
+    ) {
+        var sections: [TerminalDetailSection] = []
+
+        if let baseline = experiment.baselineClustering {
+            sections.append(
+                .init(
+                    title: "baseline",
+                    items: [
+                        .field(
+                            label: "clustering",
+                            value: clusteringDescription(
+                                baseline
+                            )
+                        ),
+                    ]
+                )
+            )
+        }
+
+        sections.append(
+            contentsOf: experiment.results.map { result in
+                var items: [TerminalDetailItem] = [
+                    .field(
+                        label: "weights",
+                        value: weightsDescription(
+                            result.candidate.featureWeights
+                        )
+                    ),
+                    .field(
+                        label: "comparison",
+                        value: comparisonDescription(
+                            result.comparison,
+                            clustering: result.clustering
+                        )
+                    ),
+                ]
+
+                if !result.comparison.acousticChanges.isEmpty {
+                    items.append(
+                        .list(
+                            label: "acoustic changes",
+                            values: result.comparison.acousticChanges.map(
+                                acousticDescription
+                            )
+                        )
+                    )
+                }
+
+                if !result.comparison.resolvedChanges.isEmpty {
+                    items.append(
+                        .list(
+                            label: "resolved changes",
+                            values: result.comparison.resolvedChanges.map(
+                                resolvedDescription
+                            )
+                        )
+                    )
+                }
+
+                return .init(
+                    title: result.candidate.name,
+                    items: items
+                )
+            }
+        )
+
+        render(
+            title: "Speaker weight calibration",
+            sections: sections
+        )
+    }
 }
 
 private extension TranscribeTerminalRenderer {
     static func description(
         _ summary: SpeakerDiarizationReplaySummary
     ) -> String {
-        let error = summary.reliabilityWeightedSquaredError.map {
-            String(format: "%.4f", $0)
-        } ?? "n/a"
+        let error = optionalDescription(
+            summary.reliabilityWeightedSquaredError
+        )
+        let normalized = optionalDescription(
+            summary.normalizedReliabilityWeightedSquaredError
+        )
 
-        return "acoustic changes \(summary.changedAcousticAssignmentCount), resolved changes \(summary.changedResolvedAssignmentCount), segments \(summary.segmentCount), speakers \(summary.speakerCount), weighted SSE \(error)"
+        return "acoustic changes \(summary.changedAcousticAssignmentCount), resolved changes \(summary.changedResolvedAssignmentCount), segments \(summary.segmentCount), speakers \(summary.speakerCount), weighted SSE \(error), normalized SSE \(normalized)"
+    }
+
+    static func clusteringDescription(
+        _ evaluation: SpeakerClusteringNormalizedEvaluation
+    ) -> String {
+        String(
+            format: "weighted SSE %.4f, normalized SSE %.4f, effective feature weight %.4f, reliability weight %.4f",
+            evaluation.clustering.reliabilityWeightedSquaredError,
+            evaluation.normalizedReliabilityWeightedSquaredError,
+            evaluation.effectiveFeatureWeight,
+            evaluation.totalReliabilityWeight
+        )
+    }
+
+    static func comparisonDescription(
+        _ comparison: SpeakerDiarizationReplayComparison,
+        clustering: SpeakerClusteringNormalizedEvaluation?
+    ) -> String {
+        let error = optionalDescription(
+            comparison.reliabilityWeightedSquaredError
+        )
+        let normalized = optionalDescription(
+            clustering?.normalizedReliabilityWeightedSquaredError
+        )
+
+        return "acoustic changes \(comparison.acousticChanges.count), resolved changes \(comparison.resolvedChanges.count), segments \(comparison.segmentCount), speakers \(comparison.speakerCount), weighted SSE \(error), normalized SSE \(normalized)"
+    }
+
+    static func weightsDescription(
+        _ weights: SpeakerFeatureWeights
+    ) -> String {
+        String(
+            format: "mfcc %.3f, logMel %.3f, pitch %.3f, spectral %.3f, dynamics %.3f, consistency %.3f, quality %.3f, enhancedView %.3f",
+            weights.mfcc,
+            weights.logMel,
+            weights.pitch,
+            weights.spectral,
+            weights.dynamics,
+            weights.consistency,
+            weights.quality,
+            weights.enhancedView
+        )
     }
 
     static func acousticDescription(

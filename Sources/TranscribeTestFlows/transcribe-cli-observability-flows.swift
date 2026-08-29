@@ -159,6 +159,7 @@ extension TranscribeFlowSuite {
                     "diagnostic",
                     "--speaker-ablation",
                     "--speaker-ablation-detail",
+                    "--speaker-calibration",
                 ]
                 process.standardOutput = stdout
                 process.standardError = stderr

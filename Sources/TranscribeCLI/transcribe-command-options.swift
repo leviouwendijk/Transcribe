@@ -58,6 +58,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
     let contextDetail: SpeechAnalysisContextDetail
     let speakerAblation: Bool
     let speakerAblationDetail: Bool
+    let speakerCalibration: Bool
 
     init(arguments: Payload) throws {
         let audioFile = clean(arguments.audioFile)
@@ -109,6 +110,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
         contextDetail = arguments.contextDetail.detail
         speakerAblation = arguments.speakerAblation
         speakerAblationDetail = arguments.speakerAblationDetail
+        speakerCalibration = arguments.speakerCalibration
     }
 
     struct Payload: ArgumentGroup {
@@ -180,6 +182,12 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
             help: "Include localized assignment changes for each speaker-feature ablation."
         )
         var speakerAblationDetail: Bool
+
+        @Flag(
+            "speaker-calibration",
+            help: "Replay the experimental MFCC/logMel/spectral weight grid without changing production defaults."
+        )
+        var speakerCalibration: Bool
 
         init() {}
     }

@@ -58,6 +58,24 @@ enum TranscribeCommandRunner {
             )
         }
 
+        if options.speakerCalibration,
+           let diarization = result.analysis.diarization,
+           let baselineWeights = diarization.method?
+            .configuration
+            .speakerObservation
+            .featureWeights {
+            let experiment = Diarizer().replayExperiment(
+                diarization,
+                candidates: speakerCalibrationCandidates(
+                    baselineWeights
+                )
+            )
+
+            TranscribeTerminalRenderer.renderSpeakerCalibration(
+                experiment
+            )
+        }
+
         print("")
         print("=== attributed transcript ===")
         for attributed in result.analysis.attributedSegments {
@@ -67,5 +85,46 @@ enum TranscribeCommandRunner {
         print("")
         print("=== raw transcript ===")
         print(result.appleTranscription.transcription.text)
+    }
+}
+
+private extension TranscribeCommandRunner {
+    static func speakerCalibrationCandidates(
+        _ baseline: SpeakerFeatureWeights
+    ) -> [SpeakerDiarizationReplayCandidate] {
+        [
+            .init(
+                name: "candidate-a",
+                featureWeights: baseline.replacing(
+                    mfcc: 0.75,
+                    logMel: 0.50,
+                    spectral: 0.45
+                )
+            ),
+            .init(
+                name: "candidate-b",
+                featureWeights: baseline.replacing(
+                    mfcc: 0.50,
+                    logMel: 0.50,
+                    spectral: 0.45
+                )
+            ),
+            .init(
+                name: "candidate-c",
+                featureWeights: baseline.replacing(
+                    mfcc: 0.50,
+                    logMel: 0.25,
+                    spectral: 0.45
+                )
+            ),
+            .init(
+                name: "candidate-d",
+                featureWeights: baseline.replacing(
+                    mfcc: 0.50,
+                    logMel: 0.25,
+                    spectral: 0.60
+                )
+            ),
+        ]
     }
 }

@@ -94,6 +94,7 @@ public struct SpeakerDiarizationReplaySummary:
     public let changedAcousticAssignmentCount: Int
     public let changedResolvedAssignmentCount: Int
     public let reliabilityWeightedSquaredError: Double?
+    public let normalizedReliabilityWeightedSquaredError: Double?
 
     public init(
         ablation: SpeakerFeatureAblationTarget,
@@ -101,7 +102,8 @@ public struct SpeakerDiarizationReplaySummary:
         segmentCount: Int,
         changedAcousticAssignmentCount: Int,
         changedResolvedAssignmentCount: Int,
-        reliabilityWeightedSquaredError: Double?
+        reliabilityWeightedSquaredError: Double?,
+        normalizedReliabilityWeightedSquaredError: Double? = nil
     ) {
         self.ablation = ablation
         self.speakerCount = speakerCount
@@ -109,6 +111,8 @@ public struct SpeakerDiarizationReplaySummary:
         self.changedAcousticAssignmentCount = changedAcousticAssignmentCount
         self.changedResolvedAssignmentCount = changedResolvedAssignmentCount
         self.reliabilityWeightedSquaredError = reliabilityWeightedSquaredError
+        self.normalizedReliabilityWeightedSquaredError =
+            normalizedReliabilityWeightedSquaredError
     }
 }
 
