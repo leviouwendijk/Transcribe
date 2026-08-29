@@ -49,10 +49,12 @@ enum TranscribeCommandRunner {
 
         TranscribeCLI.renderTiming(result.timing)
 
-        if options.speakerAblation,
+        if options.speakerAblation
+            || options.speakerAblationDetail,
            let diarization = result.analysis.diarization {
             TranscribeTerminalRenderer.renderSpeakerAblation(
-                Diarizer().leaveOneOutSummaries(diarization)
+                Diarizer().leaveOneOutReports(diarization),
+                detailed: options.speakerAblationDetail
             )
         }
 

@@ -57,6 +57,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
     let contextOutput: URL?
     let contextDetail: SpeechAnalysisContextDetail
     let speakerAblation: Bool
+    let speakerAblationDetail: Bool
 
     init(arguments: Payload) throws {
         let audioFile = clean(arguments.audioFile)
@@ -107,6 +108,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
         contextOutput = arguments.contextOutput.flatMap(outputURL)
         contextDetail = arguments.contextDetail.detail
         speakerAblation = arguments.speakerAblation
+        speakerAblationDetail = arguments.speakerAblationDetail
     }
 
     struct Payload: ArgumentGroup {
@@ -172,6 +174,12 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
             help: "Replay diarization once per feature family and report sensitivity."
         )
         var speakerAblation: Bool
+
+        @Flag(
+            "speaker-ablation-detail",
+            help: "Include localized assignment changes for each speaker-feature ablation."
+        )
+        var speakerAblationDetail: Bool
 
         init() {}
     }

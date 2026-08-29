@@ -197,44 +197,9 @@ public struct Diarizer: Sendable {
     public func leaveOneOutSummaries(
         _ source: DiarizationResult
     ) -> [SpeakerDiarizationReplaySummary] {
-        guard source.method != nil else {
-            return []
-        }
-
-        let baselineByObservation = Dictionary(
-            uniqueKeysWithValues: source.assignments.map {
-                (
-                    $0.observationID,
-                    $0
-                )
-            }
-        )
-
-        return SpeakerFeatureAblationTarget.allCases.map { target in
-            let result = replay(
-                source,
-                ablating: target
-            )
-            let changedAcoustic = result.assignments.filter { assignment in
-                baselineByObservation[assignment.observationID]?.acousticSpeaker
-                    != assignment.acousticSpeaker
-            }.count
-            let changedResolved = result.assignments.filter { assignment in
-                baselineByObservation[assignment.observationID]?.resolvedSpeaker
-                    != assignment.resolvedSpeaker
-            }.count
-
-            return .init(
-                ablation: target,
-                speakerCount: result.profiles.count,
-                segmentCount: result.segments.count,
-                changedAcousticAssignmentCount: changedAcoustic,
-                changedResolvedAssignmentCount: changedResolved,
-                reliabilityWeightedSquaredError: result.method?
-                    .clustering?
-                    .reliabilityWeightedSquaredError
-            )
-        }
+        leaveOneOutReports(
+            source
+        ).map(\.summary)
     }
 }
 
