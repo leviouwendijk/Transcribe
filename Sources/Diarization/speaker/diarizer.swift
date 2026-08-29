@@ -12,6 +12,7 @@ public struct DiarizationConfiguration:
     public let minimumSplitImprovement: Double
     public let maximumIterations: Int
     public let segmentMergeGapSeconds: Double
+    public let temporalCoherence: SpeakerTemporalCoherenceConfiguration
     public let acoustic: AcousticAnalyzerConfiguration
     public let speakerObservation: SpeakerObservationBuilder.Configuration
 
@@ -22,6 +23,7 @@ public struct DiarizationConfiguration:
         minimumSplitImprovement: Double = 0.35,
         maximumIterations: Int = 32,
         segmentMergeGapSeconds: Double = 0.15,
+        temporalCoherence: SpeakerTemporalCoherenceConfiguration = .init(),
         acoustic: AcousticAnalyzerConfiguration = .init(),
         speakerObservation: SpeakerObservationBuilder.Configuration = .init()
     ) {
@@ -41,6 +43,7 @@ public struct DiarizationConfiguration:
         self.minimumSplitImprovement = minimumSplitImprovement
         self.maximumIterations = maximumIterations
         self.segmentMergeGapSeconds = segmentMergeGapSeconds
+        self.temporalCoherence = temporalCoherence
         self.acoustic = acoustic
         self.speakerObservation = speakerObservation
     }
@@ -98,6 +101,7 @@ public struct Diarizer: Sendable {
             segments: result.segments,
             profiles: result.profiles,
             observations: result.observations,
+            assignments: result.assignments,
             acoustic: evidence.raw,
             enhancedAcoustic: evidence.enhanced,
             noiseProfile: evidence.noise,
@@ -181,19 +185,42 @@ public struct Diarizer: Sendable {
             )
         }
 
+        let acousticConfidences = assignmentConfidences(
+            vectors: vectors,
+            clustering: clustering
+        )
+
         let confidences = zip(
-            assignmentConfidences(
-                vectors: vectors,
-                clustering: clustering
-            ),
+            acousticConfidences,
             reliabilities
         ).map {
             $0.0 * $0.1
         }
 
+        let acousticAssignments = speakerObservationAssignments(
+            observations: observations,
+            vectors: vectors,
+            clustering: clustering,
+            acousticConfidences: acousticConfidences,
+            reliabilities: reliabilities,
+            speakerIDs: speakerIDs
+        )
+
+        let resolvedAssignments = SpeakerTemporalCoherence(
+            configuration: configuration.temporalCoherence
+        ).resolve(
+            observations: observations,
+            assignments: acousticAssignments
+        )
+
+        let resolvedClusters = resolvedClusterAssignments(
+            resolvedAssignments,
+            speakerIDs: speakerIDs
+        )
+
         let segments = speakerSegments(
             observations: observations,
-            assignments: clustering.assignments,
+            assignments: resolvedClusters,
             confidences: confidences,
             speakerIDs: speakerIDs,
             mergeGapSeconds: configuration.segmentMergeGapSeconds
@@ -202,7 +229,7 @@ public struct Diarizer: Sendable {
         let profiles = speakerProfiles(
             observations: observations,
             originalVectors: originalVectors,
-            assignments: clustering.assignments,
+            assignments: resolvedClusters,
             reliabilities: reliabilities,
             speakerIDs: speakerIDs,
             analysis: analysis,
@@ -213,6 +240,7 @@ public struct Diarizer: Sendable {
             segments: segments,
             profiles: profiles,
             observations: observations,
+            assignments: resolvedAssignments,
             acoustic: analysis
         )
     }
@@ -577,6 +605,71 @@ private extension Diarizer {
         }
     }
 
+    func speakerObservationAssignments(
+        observations: [SpeakerObservation],
+        vectors: [[Double]],
+        clustering: ClusterResult,
+        acousticConfidences: [Double],
+        reliabilities: [Double],
+        speakerIDs: [SpeakerID]
+    ) -> [SpeakerObservationAssignment] {
+        observations.indices.map { index in
+            let distances = clustering.centroids.map {
+                distanceSquared(
+                    vectors[index],
+                    $0
+                )
+            }
+
+            let ordered = distances.sorted()
+            let scale = ordered.count >= 2
+                ? max(
+                    ordered[1],
+                    1e-12
+                )
+                : 1
+
+            let candidates = speakerIDs.indices.map { speakerIndex in
+                SpeakerAssignmentCandidate(
+                    speaker: speakerIDs[speakerIndex],
+                    acousticCost: speakerIDs.count > 1
+                        ? distances[speakerIndex] / scale
+                        : 0
+                )
+            }
+
+            return .init(
+                observationID: observations[index].id,
+                acousticSpeaker: speakerIDs[
+                    clustering.assignments[index]
+                ],
+                acousticConfidence: acousticConfidences[index],
+                reliability: reliabilities[index],
+                candidates: candidates
+            )
+        }
+    }
+
+    func resolvedClusterAssignments(
+        _ assignments: [SpeakerObservationAssignment],
+        speakerIDs: [SpeakerID]
+    ) -> [Int] {
+        let indexBySpeaker = Dictionary(
+            uniqueKeysWithValues: speakerIDs.enumerated().map {
+                (
+                    $0.element,
+                    $0.offset
+                )
+            }
+        )
+
+        return assignments.map { assignment in
+            indexBySpeaker[assignment.resolvedSpeaker]
+                ?? indexBySpeaker[assignment.acousticSpeaker]
+                ?? 0
+        }
+    }
+
     func speakerSegments(
         observations: [SpeakerObservation],
         assignments: [Int],
@@ -663,9 +756,13 @@ private extension Diarizer {
             } ?? []
         )
 
-        return speakerIDs.indices.map { cluster in
+        return speakerIDs.indices.compactMap { cluster in
             let indices = observations.indices.filter {
                 assignments[$0] == cluster
+            }
+
+            guard !indices.isEmpty else {
+                return nil
             }
 
             let vectors = indices.map {

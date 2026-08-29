@@ -8,6 +8,8 @@ public struct AcousticTraceExportRow:
     public let startSeconds: Double
     public let endSeconds: Double
     public let speaker: SpeakerID?
+    public let acousticSpeaker: SpeakerID?
+    public let temporalAdjusted: Bool
 
     public let rawRMS: Double
     public let enhancedRMS: Double?
@@ -37,6 +39,8 @@ public struct AcousticTraceExportRow:
         startSeconds: Double,
         endSeconds: Double,
         speaker: SpeakerID?,
+        acousticSpeaker: SpeakerID?,
+        temporalAdjusted: Bool,
         rawRMS: Double,
         enhancedRMS: Double?,
         enhancementGainDB: Double?,
@@ -60,6 +64,8 @@ public struct AcousticTraceExportRow:
         self.startSeconds = startSeconds
         self.endSeconds = endSeconds
         self.speaker = speaker
+        self.acousticSpeaker = acousticSpeaker
+        self.temporalAdjusted = temporalAdjusted
         self.rawRMS = rawRMS
         self.enhancedRMS = enhancedRMS
         self.enhancementGainDB = enhancementGainDB
@@ -106,7 +112,18 @@ public extension DiarizationResult {
             }
         )
 
+        let assignmentByObservationID = Dictionary(
+            uniqueKeysWithValues: assignments.map {
+                (
+                    $0.observationID,
+                    $0
+                )
+            }
+        )
+
         var speakerByAcousticID: [AcousticObservationID: SpeakerID] = [:]
+        var acousticSpeakerByAcousticID: [AcousticObservationID: SpeakerID] = [:]
+        var temporalAdjustedByAcousticID: [AcousticObservationID: Bool] = [:]
         var agreementByAcousticID: [AcousticObservationID: Double] = [:]
 
         let noiseByAcousticID = Dictionary(
@@ -122,6 +139,15 @@ public extension DiarizationResult {
             if let agreement = observation.viewAgreement?.combined {
                 for acousticID in observation.acousticObservationIDs {
                     agreementByAcousticID[acousticID] = agreement
+                }
+            }
+
+            if let assignment = assignmentByObservationID[
+                observation.id
+            ] {
+                for acousticID in observation.acousticObservationIDs {
+                    acousticSpeakerByAcousticID[acousticID] = assignment.acousticSpeaker
+                    temporalAdjustedByAcousticID[acousticID] = assignment.changedByContinuity
                 }
             }
         }
@@ -177,6 +203,8 @@ public extension DiarizationResult {
                 startSeconds: raw.range.start,
                 endSeconds: raw.range.end,
                 speaker: speakerByAcousticID[raw.id],
+                acousticSpeaker: acousticSpeakerByAcousticID[raw.id],
+                temporalAdjusted: temporalAdjustedByAcousticID[raw.id] ?? false,
                 rawRMS: raw.signal.rms,
                 enhancedRMS: enhanced?.signal.rms,
                 enhancementGainDB: gain,
@@ -205,6 +233,8 @@ public extension DiarizationResult {
             "start_seconds",
             "end_seconds",
             "speaker",
+            "acoustic_speaker",
+            "temporal_adjusted",
             "raw_rms",
             "enhanced_rms",
             "enhancement_gain_db",
@@ -235,6 +265,10 @@ public extension DiarizationResult {
                 traceCSVField(
                     row.speaker?.rawValue ?? ""
                 ),
+                traceCSVField(
+                    row.acousticSpeaker?.rawValue ?? ""
+                ),
+                row.temporalAdjusted ? "1" : "0",
                 traceDecimal(row.rawRMS),
                 traceOptionalDecimal(row.enhancedRMS),
                 traceOptionalDecimal(row.enhancementGainDB),

@@ -116,6 +116,7 @@ public struct DiarizationResult:
     public let segments: [SpeakerSegment]
     public let profiles: [SpeakerProfile]
     public let observations: [SpeakerObservation]
+    public let assignments: [SpeakerObservationAssignment]
     public let acoustic: AcousticAnalysis?
     public let enhancedAcoustic: AcousticAnalysis?
     public let noiseProfile: AcousticNoiseProfile?
@@ -126,6 +127,7 @@ public struct DiarizationResult:
         segments: [SpeakerSegment],
         profiles: [SpeakerProfile] = [],
         observations: [SpeakerObservation] = [],
+        assignments: [SpeakerObservationAssignment] = [],
         acoustic: AcousticAnalysis? = nil,
         enhancedAcoustic: AcousticAnalysis? = nil,
         noiseProfile: AcousticNoiseProfile? = nil,
@@ -135,6 +137,7 @@ public struct DiarizationResult:
         self.segments = segments
         self.profiles = profiles
         self.observations = observations
+        self.assignments = assignments
         self.acoustic = acoustic
         self.enhancedAcoustic = enhancedAcoustic
         self.noiseProfile = noiseProfile

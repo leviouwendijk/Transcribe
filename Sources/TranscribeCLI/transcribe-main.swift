@@ -225,6 +225,14 @@ private extension TranscribeCLI {
             "speaker segments: \(diarization.segments.count)"
         )
 
+        let temporalCorrectionCount = diarization.assignments.filter {
+            $0.changedByContinuity
+        }.count
+
+        print(
+            "temporal speaker corrections: \(temporalCorrectionCount)"
+        )
+
         if let transcription = analysis.transcription,
            let alignment = analysis.alignment {
             let assigned = alignment.assignments.count
