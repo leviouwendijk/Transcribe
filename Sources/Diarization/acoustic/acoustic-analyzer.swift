@@ -90,18 +90,10 @@ public struct AcousticAnalyzer: Sendable {
 
         var frameStart = 0
 
-        while frameStart < samples.count {
-            let frameEnd = min(
-                samples.count,
-                frameStart + frameLength
-            )
-
-            let available = frameEnd - frameStart
-
-            if available < frameLength / 2,
-               !unclassified.isEmpty {
-                break
-            }
+        while frameStart + frameLength <= samples.count {
+            let frameEnd = frameStart
+                + frameLength
+            let available = frameLength
 
             let frame = Array(
                 samples[frameStart..<frameEnd]

@@ -78,6 +78,120 @@ extension TranscribeFlowSuite {
                 )
             }
 
+            Step("batch boundaries preserve continuous complete acoustic frames") {
+                let sampleRate = 16_000
+                let base = AudioTestFixture.sine(
+                    frequency: 181,
+                    duration: 0.65,
+                    amplitude: 0.2,
+                    sampleRate: sampleRate
+                )
+
+                let samples = base.enumerated().map {
+                    index,
+                    sample in
+
+                    let progress = Double(index)
+                        / Double(
+                            max(
+                                1,
+                                base.count - 1
+                            )
+                        )
+
+                    return sample
+                        * Float(
+                            0.5 + 0.5 * progress
+                        )
+                }
+
+                let buffer = AudioTestFixture.buffer(
+                    samples: samples,
+                    sampleRate: sampleRate
+                )
+
+                let direct = try AcousticAnalyzer().analyze(
+                    buffer
+                )
+
+                let accumulator = AcousticAnalysisAccumulator(
+                    batchDurationSeconds: 0.1
+                )
+
+                try accumulator.consume(
+                    .init(
+                        trackID: 1,
+                        buffer: buffer,
+                        presentationTimeSeconds: 0,
+                        durationSeconds: Double(samples.count)
+                            / Double(sampleRate)
+                    )
+                )
+
+                let accumulated = try accumulator.finish()
+
+                try Expect.equal(
+                    accumulated.observations.count,
+                    direct.observations.count,
+                    "session-acoustic.batch-independent-count"
+                )
+
+                try Expect.equal(
+                    zip(
+                        accumulated.observations,
+                        direct.observations
+                    ).allSatisfy {
+                        accumulated,
+                        direct in
+
+                        abs(
+                            accumulated.range.start
+                                - direct.range.start
+                        ) < 1e-9
+                            && abs(
+                                accumulated.range.duration
+                                    - 0.032
+                            ) < 1e-9
+                    },
+                    true,
+                    "session-acoustic.batch-independent-timeline"
+                )
+
+                try Expect.equal(
+                    zip(
+                        accumulated.observations,
+                        accumulated.observations.dropFirst()
+                    ).allSatisfy {
+                        previous,
+                        current in
+
+                        abs(
+                            current.range.start
+                                - previous.range.start
+                                - 0.016
+                        ) < 1e-9
+                    },
+                    true,
+                    "session-acoustic.continuous-hop-grid"
+                )
+
+                try Expect.equal(
+                    accumulated.observations
+                        .dropFirst()
+                        .contains {
+                            abs(
+                                $0.consistency.consistencyScore
+                                    - 1
+                            ) < 1e-12
+                                && abs(
+                                    $0.consistency.transientLikelihood
+                                ) < 1e-12
+                        },
+                    false,
+                    "session-acoustic.no-batch-consistency-reset"
+                )
+            }
+
             Step("diarization retains its low-level acoustic evidence") {
                 let samples = AudioTestFixture.sine(
                     frequency: 165,

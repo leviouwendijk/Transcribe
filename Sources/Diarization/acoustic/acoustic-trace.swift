@@ -278,6 +278,19 @@ private extension AcousticAnalysis {
             return .neutral
         }
 
+        let sampleTolerance = 1
+            / Double(
+                max(
+                    1,
+                    sampleRate
+                )
+            )
+
+        guard current.range.start
+            <= previous.range.end + sampleTolerance else {
+            return .neutral
+        }
+
         let energyDeltaDB = abs(
             db(current.signal.rms)
                 - db(previous.signal.rms)

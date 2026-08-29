@@ -136,19 +136,58 @@ public final class AcousticAnalysisAccumulator:
             + Double(samples.count)
             / Double(actualSampleRate)
 
-        let batchSampleCount = max(
+        let frameSampleCount = max(
             1,
             Int(
                 (
                     Double(actualSampleRate)
-                    * batchDurationSeconds
+                        * configuration.frameDurationSeconds
                 ).rounded()
             )
         )
 
-        while pendingSamples.count >= batchSampleCount {
+        let hopSampleCount = max(
+            1,
+            Int(
+                (
+                    Double(actualSampleRate)
+                        * configuration.hopDurationSeconds
+                ).rounded()
+            )
+        )
+
+        let targetBatchSampleCount = max(
+            hopSampleCount,
+            Int(
+                (
+                    Double(actualSampleRate)
+                        * batchDurationSeconds
+                ).rounded()
+            )
+        )
+
+        let batchAdvanceSampleCount = max(
+            hopSampleCount,
+            Int(
+                (
+                    Double(targetBatchSampleCount)
+                        / Double(hopSampleCount)
+                ).rounded()
+            ) * hopSampleCount
+        )
+
+        let overlapSampleCount = max(
+            0,
+            frameSampleCount - hopSampleCount
+        )
+
+        let analysisSampleCount = batchAdvanceSampleCount
+            + overlapSampleCount
+
+        while pendingSamples.count >= analysisSampleCount {
             try flushLocked(
-                sampleCount: batchSampleCount
+                sampleCount: analysisSampleCount,
+                advancingBy: batchAdvanceSampleCount
             )
         }
     }
@@ -197,17 +236,24 @@ public final class AcousticAnalysisAccumulator:
                 / Double(noiseFloorObservationCount)
             : 0
 
-        return .init(
+        let assembled = AcousticAnalysis(
             sampleRate: sampleRate ?? 0,
             noiseFloorRMS: noiseFloor,
             observations: rebased
+        )
+
+        return .init(
+            sampleRate: assembled.sampleRate,
+            noiseFloorRMS: assembled.noiseFloorRMS,
+            observations: assembled.observationsWithConsistency()
         )
     }
 }
 
 private extension AcousticAnalysisAccumulator {
     func flushLocked(
-        sampleCount requestedSampleCount: Int? = nil
+        sampleCount requestedSampleCount: Int? = nil,
+        advancingBy requestedAdvanceSampleCount: Int? = nil
     ) throws {
         guard let sampleRate,
               sampleRate > 0,
@@ -226,6 +272,15 @@ private extension AcousticAnalysisAccumulator {
         guard sampleCount > 0 else {
             return
         }
+
+        let advanceSampleCount = min(
+            sampleCount,
+            max(
+                1,
+                requestedAdvanceSampleCount
+                    ?? sampleCount
+            )
+        )
 
         let samples = Array(
             pendingSamples.prefix(
@@ -277,14 +332,14 @@ private extension AcousticAnalysisAccumulator {
         noiseFloorObservationCount += analysis.observations.count
 
         pendingSamples.removeFirst(
-            sampleCount
+            advanceSampleCount
         )
 
         if pendingSamples.isEmpty {
             pendingStartTime = nil
         } else {
             pendingStartTime = startTime
-                + Double(sampleCount)
+                + Double(advanceSampleCount)
                 / Double(sampleRate)
         }
     }
