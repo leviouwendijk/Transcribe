@@ -22,6 +22,13 @@ public struct AcousticTraceExportRow:
     public let consistency: Double
     public let transientLikelihood: Double
 
+    public let noiseLikelihood: Double?
+    public let noiseLowEnergy: Double?
+    public let noiseFlatness: Double?
+    public let noiseStationarity: Double?
+    public let noisePitchUnreliability: Double?
+    public let noiseTransient: Double?
+
     public let rawQuality: Double
     public let enhancedQuality: Double?
     public let viewAgreement: Double?
@@ -40,6 +47,12 @@ public struct AcousticTraceExportRow:
         flatness: Double,
         consistency: Double,
         transientLikelihood: Double,
+        noiseLikelihood: Double?,
+        noiseLowEnergy: Double?,
+        noiseFlatness: Double?,
+        noiseStationarity: Double?,
+        noisePitchUnreliability: Double?,
+        noiseTransient: Double?,
         rawQuality: Double,
         enhancedQuality: Double?,
         viewAgreement: Double?
@@ -57,6 +70,12 @@ public struct AcousticTraceExportRow:
         self.flatness = flatness
         self.consistency = consistency
         self.transientLikelihood = transientLikelihood
+        self.noiseLikelihood = noiseLikelihood
+        self.noiseLowEnergy = noiseLowEnergy
+        self.noiseFlatness = noiseFlatness
+        self.noiseStationarity = noiseStationarity
+        self.noisePitchUnreliability = noisePitchUnreliability
+        self.noiseTransient = noiseTransient
         self.rawQuality = rawQuality
         self.enhancedQuality = enhancedQuality
         self.viewAgreement = viewAgreement
@@ -89,6 +108,15 @@ public extension DiarizationResult {
 
         var speakerByAcousticID: [AcousticObservationID: SpeakerID] = [:]
         var agreementByAcousticID: [AcousticObservationID: Double] = [:]
+
+        let noiseByAcousticID = Dictionary(
+            uniqueKeysWithValues: noiseEvidence.map {
+                (
+                    $0.observationID,
+                    $0
+                )
+            }
+        )
 
         for observation in observations {
             if let agreement = observation.viewAgreement?.combined {
@@ -141,6 +169,10 @@ public extension DiarizationResult {
                 raw.id
             ]
 
+            let noise = noiseByAcousticID[
+                raw.id
+            ]
+
             return .init(
                 startSeconds: raw.range.start,
                 endSeconds: raw.range.end,
@@ -155,6 +187,12 @@ public extension DiarizationResult {
                 flatness: raw.spectral.flatness,
                 consistency: raw.consistency.consistencyScore,
                 transientLikelihood: raw.consistency.transientLikelihood,
+                noiseLikelihood: noise?.likelihood,
+                noiseLowEnergy: noise?.lowEnergy,
+                noiseFlatness: noise?.flatness,
+                noiseStationarity: noise?.stationarity,
+                noisePitchUnreliability: noise?.pitchUnreliability,
+                noiseTransient: noise?.transient,
                 rawQuality: raw.quality.score,
                 enhancedQuality: enhanced?.quality.score,
                 viewAgreement: agreementByAcousticID[raw.id]
@@ -177,6 +215,12 @@ public extension DiarizationResult {
             "flatness",
             "consistency",
             "transient_likelihood",
+            "noise_likelihood",
+            "noise_low_energy",
+            "noise_flatness",
+            "noise_stationarity",
+            "noise_pitch_unreliability",
+            "noise_transient",
             "raw_quality",
             "enhanced_quality",
             "view_agreement",
@@ -201,6 +245,12 @@ public extension DiarizationResult {
                 traceDecimal(row.flatness),
                 traceDecimal(row.consistency),
                 traceDecimal(row.transientLikelihood),
+                traceOptionalDecimal(row.noiseLikelihood),
+                traceOptionalDecimal(row.noiseLowEnergy),
+                traceOptionalDecimal(row.noiseFlatness),
+                traceOptionalDecimal(row.noiseStationarity),
+                traceOptionalDecimal(row.noisePitchUnreliability),
+                traceOptionalDecimal(row.noiseTransient),
                 traceDecimal(row.rawQuality),
                 traceOptionalDecimal(row.enhancedQuality),
                 traceOptionalDecimal(row.viewAgreement),

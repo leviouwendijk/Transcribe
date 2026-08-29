@@ -100,6 +100,7 @@ public struct Diarizer: Sendable {
             acoustic: evidence.raw,
             enhancedAcoustic: evidence.enhanced,
             noiseProfile: evidence.noise,
+            noiseEvidence: evidence.noiseEvidence,
             enhancement: evidence.enhancement
         )
     }

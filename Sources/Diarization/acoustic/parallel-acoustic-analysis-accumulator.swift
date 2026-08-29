@@ -130,11 +130,16 @@ public final class ParallelAcousticAnalysisAccumulator:
             )
         )
 
+        let noise = AcousticNoiseProfile(
+            analysis: rawAnalysis
+        )
+
         return .init(
             raw: rawAnalysis,
             enhanced: enhancedAnalysis,
-            noise: .init(
-                analysis: rawAnalysis
+            noise: noise,
+            noiseEvidence: noise.evidence(
+                for: rawAnalysis
             ),
             enhancement: .init(
                 blocks: enhancementBlocks,

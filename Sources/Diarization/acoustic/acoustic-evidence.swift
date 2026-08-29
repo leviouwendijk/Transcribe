@@ -93,6 +93,135 @@ public struct AcousticNoiseProfile:
     }
 }
 
+public struct AcousticNoiseEvidence:
+    Sendable,
+    Codable,
+    Hashable
+{
+    public let observationID: AcousticObservationID
+    public let likelihood: Double
+    public let lowEnergy: Double
+    public let flatness: Double
+    public let stationarity: Double
+    public let pitchUnreliability: Double
+    public let transient: Double
+
+    public init(
+        observationID: AcousticObservationID,
+        likelihood: Double,
+        lowEnergy: Double,
+        flatness: Double,
+        stationarity: Double,
+        pitchUnreliability: Double,
+        transient: Double
+    ) {
+        self.observationID = observationID
+        self.likelihood = Self.clamp(likelihood)
+        self.lowEnergy = Self.clamp(lowEnergy)
+        self.flatness = Self.clamp(flatness)
+        self.stationarity = Self.clamp(stationarity)
+        self.pitchUnreliability = Self.clamp(pitchUnreliability)
+        self.transient = Self.clamp(transient)
+    }
+}
+
+public extension AcousticNoiseProfile {
+    func evidence(
+        for analysis: AcousticAnalysis
+    ) -> [AcousticNoiseEvidence] {
+        analysis.observations.map {
+            evidence(
+                for: $0
+            )
+        }
+    }
+
+    func evidence(
+        for observation: AcousticObservation
+    ) -> AcousticNoiseEvidence {
+        guard observationCount > 0 else {
+            return .init(
+                observationID: observation.id,
+                likelihood: 0,
+                lowEnergy: 0,
+                flatness: 0,
+                stationarity: 0,
+                pitchUnreliability: 0,
+                transient: 0
+            )
+        }
+
+        let noiseRMS = max(
+            rms.q90,
+            1e-9
+        )
+
+        let rmsRatio = observation.signal.rms
+            / noiseRMS
+
+        let lowEnergy = 1
+            / (1 + rmsRatio * rmsRatio)
+
+        let flatnessReference = max(
+            flatness.median,
+            0.05
+        )
+
+        let flatnessEvidence = AcousticNoiseEvidence.clamp(
+            observation.spectral.flatness
+                / flatnessReference
+        )
+
+        let stationarityReference = max(
+            stationarity.median,
+            0.10
+        )
+
+        let stationarityEvidence = AcousticNoiseEvidence.clamp(
+            observation.consistency.consistencyScore
+                / stationarityReference
+        )
+
+        let pitchUnreliability = observation.spectral.pitchHz == nil
+            ? 1
+            : 1 - observation.spectral.pitchConfidence
+
+        let transient = observation
+            .consistency
+            .transientLikelihood
+
+        let likelihood = 0.40 * flatnessEvidence
+            + 0.15 * lowEnergy
+            + 0.15 * stationarityEvidence
+            + 0.25 * pitchUnreliability
+            + 0.05 * transient
+
+        return .init(
+            observationID: observation.id,
+            likelihood: likelihood,
+            lowEnergy: lowEnergy,
+            flatness: flatnessEvidence,
+            stationarity: stationarityEvidence,
+            pitchUnreliability: pitchUnreliability,
+            transient: transient
+        )
+    }
+}
+
+private extension AcousticNoiseEvidence {
+    static func clamp(
+        _ value: Double
+    ) -> Double {
+        min(
+            1,
+            max(
+                0,
+                value
+            )
+        )
+    }
+}
+
 public struct AcousticEnhancementBlock:
     Sendable,
     Codable,
@@ -161,17 +290,20 @@ public struct ParallelAcousticEvidence:
     public let raw: AcousticAnalysis
     public let enhanced: AcousticAnalysis
     public let noise: AcousticNoiseProfile
+    public let noiseEvidence: [AcousticNoiseEvidence]
     public let enhancement: AcousticEnhancementSummary
 
     public init(
         raw: AcousticAnalysis,
         enhanced: AcousticAnalysis,
         noise: AcousticNoiseProfile,
+        noiseEvidence: [AcousticNoiseEvidence] = [],
         enhancement: AcousticEnhancementSummary
     ) {
         self.raw = raw
         self.enhanced = enhanced
         self.noise = noise
+        self.noiseEvidence = noiseEvidence
         self.enhancement = enhancement
     }
 }

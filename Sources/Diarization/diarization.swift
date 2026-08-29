@@ -119,6 +119,7 @@ public struct DiarizationResult:
     public let acoustic: AcousticAnalysis?
     public let enhancedAcoustic: AcousticAnalysis?
     public let noiseProfile: AcousticNoiseProfile?
+    public let noiseEvidence: [AcousticNoiseEvidence]
     public let enhancement: AcousticEnhancementSummary?
 
     public init(
@@ -128,6 +129,7 @@ public struct DiarizationResult:
         acoustic: AcousticAnalysis? = nil,
         enhancedAcoustic: AcousticAnalysis? = nil,
         noiseProfile: AcousticNoiseProfile? = nil,
+        noiseEvidence: [AcousticNoiseEvidence] = [],
         enhancement: AcousticEnhancementSummary? = nil
     ) {
         self.segments = segments
@@ -136,6 +138,7 @@ public struct DiarizationResult:
         self.acoustic = acoustic
         self.enhancedAcoustic = enhancedAcoustic
         self.noiseProfile = noiseProfile
+        self.noiseEvidence = noiseEvidence
         self.enhancement = enhancement
     }
 
