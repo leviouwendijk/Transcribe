@@ -127,6 +127,131 @@ public struct Diarizer: Sendable {
             enhanced: enhanced
         )
 
+        return interpretSpeakerObservations(
+            observations,
+            analysis: analysis,
+            enhanced: enhanced,
+            noiseEvidence: noiseEvidence,
+            configuration: configuration
+        )
+    }
+
+    public func replay(
+        _ source: DiarizationResult,
+        configuration requestedConfiguration: SpeakerDiarizationReplayConfiguration? = nil
+    ) -> DiarizationResult {
+        guard let analysis = source.acoustic,
+              let method = source.method else {
+            return source
+        }
+
+        let replayConfiguration = requestedConfiguration
+            ?? .init(method.configuration)
+        let configuration = replayConfiguration.resolved(
+            preservingNonReplayableFrom: method.configuration
+        )
+        let observations = reweightedSpeakerObservations(
+            source.observations,
+            featureWeights: replayConfiguration.featureWeights
+        )
+        let result = interpretSpeakerObservations(
+            observations,
+            analysis: analysis,
+            enhanced: source.enhancedAcoustic,
+            noiseEvidence: source.noiseEvidence,
+            configuration: configuration
+        )
+
+        return .init(
+            segments: result.segments,
+            profiles: result.profiles,
+            observations: result.observations,
+            assignments: result.assignments,
+            method: result.method,
+            acoustic: source.acoustic,
+            enhancedAcoustic: source.enhancedAcoustic,
+            noiseProfile: source.noiseProfile,
+            noiseEvidence: source.noiseEvidence,
+            enhancement: source.enhancement
+        )
+    }
+
+    public func replay(
+        _ source: DiarizationResult,
+        ablating target: SpeakerFeatureAblationTarget
+    ) -> DiarizationResult {
+        guard let configuration = source.method?.configuration else {
+            return source
+        }
+
+        return replay(
+            source,
+            configuration: SpeakerDiarizationReplayConfiguration(
+                configuration
+            ).ablating(
+                target
+            )
+        )
+    }
+
+    public func leaveOneOutSummaries(
+        _ source: DiarizationResult
+    ) -> [SpeakerDiarizationReplaySummary] {
+        guard source.method != nil else {
+            return []
+        }
+
+        let baselineByObservation = Dictionary(
+            uniqueKeysWithValues: source.assignments.map {
+                (
+                    $0.observationID,
+                    $0
+                )
+            }
+        )
+
+        return SpeakerFeatureAblationTarget.allCases.map { target in
+            let result = replay(
+                source,
+                ablating: target
+            )
+            let changedAcoustic = result.assignments.filter { assignment in
+                baselineByObservation[assignment.observationID]?.acousticSpeaker
+                    != assignment.acousticSpeaker
+            }.count
+            let changedResolved = result.assignments.filter { assignment in
+                baselineByObservation[assignment.observationID]?.resolvedSpeaker
+                    != assignment.resolvedSpeaker
+            }.count
+
+            return .init(
+                ablation: target,
+                speakerCount: result.profiles.count,
+                segmentCount: result.segments.count,
+                changedAcousticAssignmentCount: changedAcoustic,
+                changedResolvedAssignmentCount: changedResolved,
+                reliabilityWeightedSquaredError: result.method?
+                    .clustering?
+                    .reliabilityWeightedSquaredError
+            )
+        }
+    }
+}
+
+private struct ClusterResult {
+    let assignments: [Int]
+    let centroids: [[Double]]
+    let squaredError: Double
+}
+
+private extension Diarizer {
+    func interpretSpeakerObservations(
+        _ observations: [SpeakerObservation],
+        analysis: AcousticAnalysis,
+        enhanced: AcousticAnalysis?,
+        noiseEvidence: [AcousticNoiseEvidence],
+        configuration: DiarizationConfiguration
+    ) -> DiarizationResult {
         guard !observations.isEmpty else {
             return .init(
                 segments: [],
@@ -135,7 +260,9 @@ public struct Diarizer: Sendable {
                 method: .init(
                     configuration: configuration
                 ),
-                acoustic: analysis
+                acoustic: analysis,
+                enhancedAcoustic: enhanced,
+                noiseEvidence: noiseEvidence
             )
         }
 
@@ -271,18 +398,82 @@ public struct Diarizer: Sendable {
                     reliabilityWeightedSquaredError: clustering.squaredError
                 )
             ),
-            acoustic: analysis
+            acoustic: analysis,
+            enhancedAcoustic: enhanced,
+            noiseEvidence: noiseEvidence
         )
     }
-}
 
-private struct ClusterResult {
-    let assignments: [Int]
-    let centroids: [[Double]]
-    let squaredError: Double
-}
+    func reweightedSpeakerObservations(
+        _ observations: [SpeakerObservation],
+        featureWeights: SpeakerFeatureWeights
+    ) -> [SpeakerObservation] {
+        observations.map { observation in
+            let coordinates = observation.features.coordinates
 
-private extension Diarizer {
+            guard coordinates.count == observation.features.values.count else {
+                return observation
+            }
+
+            let reweightedCoordinates = coordinates.map { coordinate in
+                SpeakerFeatureCoordinate(
+                    view: coordinate.view,
+                    family: coordinate.family,
+                    weight: effectiveFeatureWeight(
+                        coordinate,
+                        featureWeights: featureWeights
+                    )
+                )
+            }
+
+            return .init(
+                id: observation.id,
+                range: observation.range,
+                acousticObservationIDs: observation.acousticObservationIDs,
+                features: .init(
+                    observation.features.values,
+                    weights: reweightedCoordinates.map(
+                        \.weight
+                    ),
+                    coordinates: reweightedCoordinates
+                ),
+                qualityScore: observation.qualityScore,
+                viewAgreement: observation.viewAgreement
+            )
+        }
+    }
+
+    func effectiveFeatureWeight(
+        _ coordinate: SpeakerFeatureCoordinate,
+        featureWeights: SpeakerFeatureWeights
+    ) -> Double {
+        let familyWeight: Double
+
+        switch coordinate.family {
+        case .mfcc:
+            familyWeight = featureWeights.mfcc
+        case .logMel:
+            familyWeight = featureWeights.logMel
+        case .pitch:
+            familyWeight = featureWeights.pitch
+        case .spectral:
+            familyWeight = featureWeights.spectral
+        case .dynamics:
+            familyWeight = featureWeights.dynamics
+        case .consistency:
+            familyWeight = featureWeights.consistency
+        case .quality:
+            familyWeight = featureWeights.quality
+        }
+
+        return familyWeight
+            * (
+                coordinate.view == .enhanced
+                    ? featureWeights.enhancedView
+                    : 1
+            )
+    }
+
     func automaticClustering(
         vectors: [[Double]],
         reliabilities: [Double],

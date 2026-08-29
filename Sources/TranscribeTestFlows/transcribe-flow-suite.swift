@@ -15,6 +15,7 @@ enum TranscribeFlowSuite: TestFlowRegistry {
         speakerTemporalCoherenceFlow,
         retainedInferenceProvenanceFlow,
         speechAnalysisContextFlow,
+        speakerDiarizationReplayFlow,
         parallelAcousticFlow,
         acousticPerformanceFlow,
         sessionAcousticFlow,
