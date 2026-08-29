@@ -94,15 +94,7 @@ private extension TranscribeCommandRunner {
     ) -> [SpeakerDiarizationReplayCandidate] {
         [
             .init(
-                name: "candidate-a",
-                featureWeights: baseline.replacing(
-                    mfcc: 0.75,
-                    logMel: 0.50,
-                    spectral: 0.45
-                )
-            ),
-            .init(
-                name: "candidate-b",
+                name: "candidate-b-control",
                 featureWeights: baseline.replacing(
                     mfcc: 0.50,
                     logMel: 0.50,
@@ -110,19 +102,51 @@ private extension TranscribeCommandRunner {
                 )
             ),
             .init(
-                name: "candidate-c",
+                name: "candidate-e",
                 featureWeights: baseline.replacing(
-                    mfcc: 0.50,
+                    mfcc: 0.25,
+                    logMel: 0.50,
+                    spectral: 0.45
+                )
+            ),
+            .init(
+                name: "candidate-f",
+                featureWeights: baseline.replacing(
+                    mfcc: 0.25,
                     logMel: 0.25,
                     spectral: 0.45
                 )
             ),
             .init(
-                name: "candidate-d",
+                name: "candidate-g",
                 featureWeights: baseline.replacing(
-                    mfcc: 0.50,
+                    mfcc: 0.25,
+                    logMel: 0.10,
+                    spectral: 0.45
+                )
+            ),
+            .init(
+                name: "candidate-h",
+                featureWeights: baseline.replacing(
+                    mfcc: 0.10,
                     logMel: 0.25,
-                    spectral: 0.60
+                    spectral: 0.45
+                )
+            ),
+            .init(
+                name: "candidate-i",
+                featureWeights: baseline.replacing(
+                    mfcc: 0.00,
+                    logMel: 0.25,
+                    spectral: 0.45
+                )
+            ),
+            .init(
+                name: "candidate-j",
+                featureWeights: baseline.replacing(
+                    mfcc: 0.25,
+                    logMel: 0.00,
+                    spectral: 0.45
                 )
             ),
         ]
