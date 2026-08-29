@@ -60,6 +60,12 @@ extension TranscribeFlowSuite {
                         .missingMethod
                 }
 
+                try Expect.equal(
+                    method.featureWeighting,
+                    .perCoordinate,
+                    "speaker-calibration.production-weighting-remains-legacy"
+                )
+
                 let baselineWeights = method
                     .configuration
                     .speakerObservation
@@ -74,12 +80,9 @@ extension TranscribeFlowSuite {
                         )
                     ),
                     SpeakerDiarizationReplayCandidate(
-                        name: "candidate-b",
-                        featureWeights: baselineWeights.replacing(
-                            mfcc: 0.50,
-                            logMel: 0.25,
-                            spectral: 0.60
-                        )
+                        name: "normalized-family",
+                        featureWeights: baselineWeights,
+                        featureWeighting: .normalizedFamily
                     ),
                 ]
                 let experiment = diarizer.replayExperiment(
@@ -87,6 +90,11 @@ extension TranscribeFlowSuite {
                     candidates: candidates
                 )
 
+                try Expect.equal(
+                    experiment.baselineFeatureWeighting,
+                    .perCoordinate,
+                    "speaker-calibration.baseline-weighting-retained"
+                )
                 try Expect.equal(
                     experiment.results.map(\.candidate),
                     candidates,
@@ -111,6 +119,14 @@ extension TranscribeFlowSuite {
                     },
                     true,
                     "speaker-calibration.exact-candidate-weights"
+                )
+                try Expect.equal(
+                    experiment.results.allSatisfy { result in
+                        result.result.method?.featureWeighting
+                            == result.candidate.featureWeighting
+                    },
+                    true,
+                    "speaker-calibration.exact-candidate-weighting"
                 )
                 try Expect.equal(
                     experiment.results.allSatisfy { result in
@@ -165,6 +181,79 @@ extension TranscribeFlowSuite {
                     true,
                     "speaker-calibration.normalized-candidate-formula"
                 )
+            }
+
+            Step("normalized family weighting preserves configured authority independent of coordinate count") {
+                let weights = SpeakerFeatureWeights()
+                let families: [
+                    (
+                        family: SpeakerFeatureFamily,
+                        count: Int,
+                        weight: Double
+                    )
+                ] = [
+                    (.mfcc, 5, weights.mfcc),
+                    (.logMel, 4, weights.logMel),
+                    (.pitch, 2, weights.pitch),
+                    (.spectral, 3, weights.spectral),
+                    (.dynamics, 2, weights.dynamics),
+                    (.consistency, 3, weights.consistency),
+                    (.quality, 1, weights.quality),
+                ]
+
+                let coordinates = families.flatMap { entry in
+                    (0..<entry.count).flatMap { _ in
+                        [
+                            SpeakerFeatureCoordinate(
+                                view: .raw,
+                                family: entry.family,
+                                weight: 99
+                            ),
+                            SpeakerFeatureCoordinate(
+                                view: .enhanced,
+                                family: entry.family,
+                                weight: 99
+                            ),
+                        ]
+                    }
+                }
+                let normalized = SpeakerFeatureWeighting
+                    .normalizedFamily
+                    .apply(
+                        to: coordinates,
+                        featureWeights: weights
+                    )
+
+                for entry in families {
+                    let raw = normalized
+                        .filter {
+                            $0.view == .raw
+                                && $0.family == entry.family
+                        }
+                        .map(\.weight)
+                        .reduce(0, +)
+                    let enhanced = normalized
+                        .filter {
+                            $0.view == .enhanced
+                                && $0.family == entry.family
+                        }
+                        .map(\.weight)
+                        .reduce(0, +)
+
+                    try Expect.equal(
+                        abs(raw - entry.weight) < 1e-12,
+                        true,
+                        "speaker-calibration.raw-family-budget-\(entry.family.rawValue)"
+                    )
+                    try Expect.equal(
+                        abs(
+                            enhanced
+                                - entry.weight * weights.enhancedView
+                        ) < 1e-12,
+                        true,
+                        "speaker-calibration.enhanced-family-budget-\(entry.family.rawValue)"
+                    )
+                }
             }
         }
     }

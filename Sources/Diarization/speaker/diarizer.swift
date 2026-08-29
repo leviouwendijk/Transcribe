@@ -146,20 +146,22 @@ public struct Diarizer: Sendable {
         }
 
         let replayConfiguration = requestedConfiguration
-            ?? .init(method.configuration)
+            ?? .init(method)
         let configuration = replayConfiguration.resolved(
             preservingNonReplayableFrom: method.configuration
         )
         let observations = reweightedSpeakerObservations(
             source.observations,
-            featureWeights: replayConfiguration.featureWeights
+            featureWeights: replayConfiguration.featureWeights,
+            featureWeighting: replayConfiguration.featureWeighting
         )
         let result = interpretSpeakerObservations(
             observations,
             analysis: analysis,
             enhanced: source.enhancedAcoustic,
             noiseEvidence: source.noiseEvidence,
-            configuration: configuration
+            configuration: configuration,
+            featureWeighting: replayConfiguration.featureWeighting
         )
 
         return .init(
@@ -180,14 +182,14 @@ public struct Diarizer: Sendable {
         _ source: DiarizationResult,
         ablating target: SpeakerFeatureAblationTarget
     ) -> DiarizationResult {
-        guard let configuration = source.method?.configuration else {
+        guard let method = source.method else {
             return source
         }
 
         return replay(
             source,
             configuration: SpeakerDiarizationReplayConfiguration(
-                configuration
+                method
             ).ablating(
                 target
             )
@@ -215,7 +217,8 @@ private extension Diarizer {
         analysis: AcousticAnalysis,
         enhanced: AcousticAnalysis?,
         noiseEvidence: [AcousticNoiseEvidence],
-        configuration: DiarizationConfiguration
+        configuration: DiarizationConfiguration,
+        featureWeighting: SpeakerFeatureWeighting = .perCoordinate
     ) -> DiarizationResult {
         guard !observations.isEmpty else {
             return .init(
@@ -223,7 +226,8 @@ private extension Diarizer {
                 profiles: [],
                 observations: [],
                 method: .init(
-                    configuration: configuration
+                    configuration: configuration,
+                    featureWeighting: featureWeighting
                 ),
                 acoustic: analysis,
                 enhancedAcoustic: enhanced,
@@ -355,6 +359,7 @@ private extension Diarizer {
             assignments: resolvedAssignments,
             method: .init(
                 configuration: configuration,
+                featureWeighting: featureWeighting,
                 featureSpace: observations.first?.features.coordinates ?? [],
                 standardization: standardization.model,
                 clustering: .init(
@@ -371,7 +376,8 @@ private extension Diarizer {
 
     func reweightedSpeakerObservations(
         _ observations: [SpeakerObservation],
-        featureWeights: SpeakerFeatureWeights
+        featureWeights: SpeakerFeatureWeights,
+        featureWeighting: SpeakerFeatureWeighting
     ) -> [SpeakerObservation] {
         observations.map { observation in
             let coordinates = observation.features.coordinates
@@ -380,16 +386,10 @@ private extension Diarizer {
                 return observation
             }
 
-            let reweightedCoordinates = coordinates.map { coordinate in
-                SpeakerFeatureCoordinate(
-                    view: coordinate.view,
-                    family: coordinate.family,
-                    weight: effectiveFeatureWeight(
-                        coordinate,
-                        featureWeights: featureWeights
-                    )
-                )
-            }
+            let reweightedCoordinates = featureWeighting.apply(
+                to: coordinates,
+                featureWeights: featureWeights
+            )
 
             return .init(
                 id: observation.id,
@@ -403,40 +403,10 @@ private extension Diarizer {
                     coordinates: reweightedCoordinates
                 ),
                 qualityScore: observation.qualityScore,
+                embedding: observation.embedding,
                 viewAgreement: observation.viewAgreement
             )
         }
-    }
-
-    func effectiveFeatureWeight(
-        _ coordinate: SpeakerFeatureCoordinate,
-        featureWeights: SpeakerFeatureWeights
-    ) -> Double {
-        let familyWeight: Double
-
-        switch coordinate.family {
-        case .mfcc:
-            familyWeight = featureWeights.mfcc
-        case .logMel:
-            familyWeight = featureWeights.logMel
-        case .pitch:
-            familyWeight = featureWeights.pitch
-        case .spectral:
-            familyWeight = featureWeights.spectral
-        case .dynamics:
-            familyWeight = featureWeights.dynamics
-        case .consistency:
-            familyWeight = featureWeights.consistency
-        case .quality:
-            familyWeight = featureWeights.quality
-        }
-
-        return familyWeight
-            * (
-                coordinate.view == .enhanced
-                    ? featureWeights.enhancedView
-                    : 1
-            )
     }
 
     func automaticClustering(
@@ -1099,6 +1069,12 @@ private extension Diarizer {
                 observations[$0].viewAgreement
             }
 
+            let embeddingProfile = SpeakerEmbeddingProfile(
+                embeddings: indices.compactMap {
+                    observations[$0].embedding
+                }
+            )
+
             return SpeakerProfile(
                 speaker: speakerIDs[cluster],
                 observationCount: indices.count,
@@ -1119,7 +1095,8 @@ private extension Diarizer {
                     rawObservations: acousticObservations,
                     enhancedObservations: enhancedObservations,
                     agreements: agreements
-                )
+                ),
+                embeddingProfile: embeddingProfile
             )
         }
     }

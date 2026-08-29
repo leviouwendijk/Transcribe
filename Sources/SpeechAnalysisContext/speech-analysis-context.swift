@@ -89,6 +89,8 @@ public struct SpeechAnalysisSpeakerProfileContext:
     public let observedDurationSeconds: Double
     public let acousticCentroid: [Double]
     public let acousticDispersion: [Double]
+    public let embeddingEvidenceCount: Int?
+    public let embeddingDispersion: Double?
     public let rms: SpeechAnalysisDistributionContext?
     public let pitchHz: SpeechAnalysisDistributionContext?
     public let pitchConfidence: SpeechAnalysisDistributionContext?
@@ -234,6 +236,8 @@ public struct SpeechAnalysisDiarizationMethodContext:
 {
     /// Exact configuration consumed by the diarization run.
     public let configuration: SpeechAnalysisDiarizationConfigurationContext
+    /// Identity representation actually consumed by clustering.
+    public let clusteringRepresentation: String
     /// Weighting semantics used to derive effective coordinate weights.
     public let featureWeighting: String
     /// Exact semantic coordinate layout and effective weights clustered in this run.
@@ -347,6 +351,9 @@ public struct SpeechAnalysisSpeakerObservationContext:
     public let featureValues: [Double]
     public let featureCoordinates: [SpeechAnalysisFeatureCoordinateContext]
     public let qualityScore: Double
+    public let embeddingValues: [Double]
+    public let embeddingModelIdentifier: String?
+    public let embeddingNormalization: String?
     public let viewAgreement: Double?
 }
 
@@ -629,6 +636,8 @@ private extension SpeechAnalysisContextProjector {
             observedDurationSeconds: value.observedDurationSeconds,
             acousticCentroid: value.acousticCentroid?.values ?? [],
             acousticDispersion: value.acousticDispersion?.values ?? [],
+            embeddingEvidenceCount: value.embeddingProfile?.evidenceCount,
+            embeddingDispersion: value.embeddingProfile?.dispersion,
             rms: acoustic.map { distribution($0.rms) },
             pitchHz: acoustic.map { distribution($0.pitchHz) },
             pitchConfidence: acoustic.map { distribution($0.pitchConfidence) },
@@ -729,6 +738,7 @@ private extension SpeechAnalysisContextProjector {
     ) -> SpeechAnalysisDiarizationMethodContext {
         .init(
             configuration: diarizationConfiguration(value.configuration),
+            clusteringRepresentation: value.clusteringRepresentation.rawValue,
             featureWeighting: value.featureWeighting.rawValue,
             featureSpace: value.featureSpace.map(featureCoordinate),
             standardization: .init(
@@ -776,6 +786,9 @@ private extension SpeechAnalysisContextProjector {
             featureValues: value.features.values,
             featureCoordinates: value.features.coordinates.map(featureCoordinate),
             qualityScore: value.qualityScore,
+            embeddingValues: value.embedding?.values.map(Double.init) ?? [],
+            embeddingModelIdentifier: value.embedding?.provenance?.modelIdentifier,
+            embeddingNormalization: value.embedding?.provenance?.normalization.rawValue,
             viewAgreement: value.viewAgreement?.combined
         )
     }

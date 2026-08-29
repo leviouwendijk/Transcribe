@@ -94,60 +94,9 @@ private extension TranscribeCommandRunner {
     ) -> [SpeakerDiarizationReplayCandidate] {
         [
             .init(
-                name: "candidate-b-control",
-                featureWeights: baseline.replacing(
-                    mfcc: 0.50,
-                    logMel: 0.50,
-                    spectral: 0.45
-                )
-            ),
-            .init(
-                name: "candidate-e",
-                featureWeights: baseline.replacing(
-                    mfcc: 0.25,
-                    logMel: 0.50,
-                    spectral: 0.45
-                )
-            ),
-            .init(
-                name: "candidate-f",
-                featureWeights: baseline.replacing(
-                    mfcc: 0.25,
-                    logMel: 0.25,
-                    spectral: 0.45
-                )
-            ),
-            .init(
-                name: "candidate-g",
-                featureWeights: baseline.replacing(
-                    mfcc: 0.25,
-                    logMel: 0.10,
-                    spectral: 0.45
-                )
-            ),
-            .init(
-                name: "candidate-h",
-                featureWeights: baseline.replacing(
-                    mfcc: 0.10,
-                    logMel: 0.25,
-                    spectral: 0.45
-                )
-            ),
-            .init(
-                name: "candidate-i",
-                featureWeights: baseline.replacing(
-                    mfcc: 0.00,
-                    logMel: 0.25,
-                    spectral: 0.45
-                )
-            ),
-            .init(
-                name: "candidate-j",
-                featureWeights: baseline.replacing(
-                    mfcc: 0.25,
-                    logMel: 0.00,
-                    spectral: 0.45
-                )
+                name: "normalized-family-defaults",
+                featureWeights: baseline,
+                featureWeighting: .normalizedFamily
             ),
         ]
     }

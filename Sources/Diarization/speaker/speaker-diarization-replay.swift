@@ -29,6 +29,7 @@ public struct SpeakerDiarizationReplayConfiguration:
     public let temporalCoherence: SpeakerTemporalCoherenceConfiguration
     public let speakerReliability: SpeakerEvidenceReliabilityConfiguration
     public let featureWeights: SpeakerFeatureWeights
+    public let featureWeighting: SpeakerFeatureWeighting
 
     public init(
         _ configuration: DiarizationConfiguration
@@ -42,6 +43,32 @@ public struct SpeakerDiarizationReplayConfiguration:
         temporalCoherence = configuration.temporalCoherence
         speakerReliability = configuration.speakerReliability
         featureWeights = configuration.speakerObservation.featureWeights
+        featureWeighting = .perCoordinate
+    }
+
+    public init(
+        _ method: DiarizationMethod
+    ) {
+        self.init(
+            method.configuration,
+            featureWeighting: method.featureWeighting
+        )
+    }
+
+    public init(
+        _ configuration: DiarizationConfiguration,
+        featureWeighting: SpeakerFeatureWeighting
+    ) {
+        expectedSpeakerCount = configuration.expectedSpeakerCount
+        maximumSpeakerCount = configuration.maximumSpeakerCount
+        minimumSpeakerObservationsPerCluster = configuration.minimumSpeakerObservationsPerCluster
+        minimumSplitImprovement = configuration.minimumSplitImprovement
+        maximumIterations = configuration.maximumIterations
+        segmentMergeGapSeconds = configuration.segmentMergeGapSeconds
+        temporalCoherence = configuration.temporalCoherence
+        speakerReliability = configuration.speakerReliability
+        featureWeights = configuration.speakerObservation.featureWeights
+        self.featureWeighting = featureWeighting
     }
 
     public init(
@@ -53,7 +80,8 @@ public struct SpeakerDiarizationReplayConfiguration:
         segmentMergeGapSeconds: Double,
         temporalCoherence: SpeakerTemporalCoherenceConfiguration,
         speakerReliability: SpeakerEvidenceReliabilityConfiguration,
-        featureWeights: SpeakerFeatureWeights
+        featureWeights: SpeakerFeatureWeights,
+        featureWeighting: SpeakerFeatureWeighting = .perCoordinate
     ) {
         self.expectedSpeakerCount = expectedSpeakerCount
         self.maximumSpeakerCount = maximumSpeakerCount
@@ -64,6 +92,7 @@ public struct SpeakerDiarizationReplayConfiguration:
         self.temporalCoherence = temporalCoherence
         self.speakerReliability = speakerReliability
         self.featureWeights = featureWeights
+        self.featureWeighting = featureWeighting
     }
 
     public func ablating(
@@ -78,7 +107,8 @@ public struct SpeakerDiarizationReplayConfiguration:
             segmentMergeGapSeconds: segmentMergeGapSeconds,
             temporalCoherence: temporalCoherence,
             speakerReliability: speakerReliability,
-            featureWeights: featureWeights.ablating(target)
+            featureWeights: featureWeights.ablating(target),
+            featureWeighting: featureWeighting
         )
     }
 }

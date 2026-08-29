@@ -140,6 +140,17 @@ public struct SpeakerClusteringEvaluation:
     }
 }
 
+public enum SpeakerClusteringRepresentation:
+    String,
+    Sendable,
+    Codable,
+    Hashable
+{
+    case acoustic
+    case embedding
+    case hybrid
+}
+
 public struct DiarizationMethod:
     Sendable,
     Codable,
@@ -148,7 +159,13 @@ public struct DiarizationMethod:
     /// Exact configuration consumed by the diarization run.
     public let configuration: DiarizationConfiguration
 
-    /// Coordinate semantics and effective weights of the feature space actually clustered.
+    /// Identity representation actually consumed by clustering.
+    public let clusteringRepresentation: SpeakerClusteringRepresentation
+
+    /// Weighting semantics used to turn configured family weights into coordinate weights.
+    public let featureWeighting: SpeakerFeatureWeighting
+
+    /// Coordinate semantics and effective weights of the acoustic feature space actually clustered.
     public let featureSpace: [SpeakerFeatureCoordinate]
 
     /// Reliability-weighted session normalization actually applied before clustering.
@@ -159,11 +176,15 @@ public struct DiarizationMethod:
 
     public init(
         configuration: DiarizationConfiguration,
+        clusteringRepresentation: SpeakerClusteringRepresentation = .acoustic,
+        featureWeighting: SpeakerFeatureWeighting = .perCoordinate,
         featureSpace: [SpeakerFeatureCoordinate] = [],
         standardization: SpeakerFeatureStandardization = .empty,
         clustering: SpeakerClusteringEvaluation? = nil
     ) {
         self.configuration = configuration
+        self.clusteringRepresentation = clusteringRepresentation
+        self.featureWeighting = featureWeighting
         self.featureSpace = featureSpace
         self.standardization = standardization
         self.clustering = clustering

@@ -91,6 +91,12 @@ enum TranscribeTerminalRenderer {
                     title: "baseline",
                     items: [
                         .field(
+                            label: "weighting",
+                            value: experiment.baselineFeatureWeighting?
+                                .rawValue
+                                ?? "unknown"
+                        ),
+                        .field(
                             label: "clustering",
                             value: clusteringDescription(
                                 baseline
@@ -104,6 +110,10 @@ enum TranscribeTerminalRenderer {
         sections.append(
             contentsOf: experiment.results.map { result in
                 var items: [TerminalDetailItem] = [
+                    .field(
+                        label: "weighting",
+                        value: result.candidate.featureWeighting.rawValue
+                    ),
                     .field(
                         label: "weights",
                         value: weightsDescription(

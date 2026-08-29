@@ -63,13 +63,16 @@ public struct SpeakerDiarizationReplayCandidate:
 {
     public let name: String
     public let featureWeights: SpeakerFeatureWeights
+    public let featureWeighting: SpeakerFeatureWeighting
 
     public init(
         name: String,
-        featureWeights: SpeakerFeatureWeights
+        featureWeights: SpeakerFeatureWeights,
+        featureWeighting: SpeakerFeatureWeighting = .perCoordinate
     ) {
         self.name = name
         self.featureWeights = featureWeights
+        self.featureWeighting = featureWeighting
     }
 }
 
@@ -101,13 +104,16 @@ public struct SpeakerDiarizationReplayExperiment:
     Codable,
     Hashable
 {
+    public let baselineFeatureWeighting: SpeakerFeatureWeighting?
     public let baselineClustering: SpeakerClusteringNormalizedEvaluation?
     public let results: [SpeakerDiarizationReplayExperimentResult]
 
     public init(
+        baselineFeatureWeighting: SpeakerFeatureWeighting?,
         baselineClustering: SpeakerClusteringNormalizedEvaluation?,
         results: [SpeakerDiarizationReplayExperimentResult]
     ) {
+        self.baselineFeatureWeighting = baselineFeatureWeighting
         self.baselineClustering = baselineClustering
         self.results = results
     }
@@ -150,7 +156,25 @@ public extension SpeakerDiarizationReplayConfiguration {
             segmentMergeGapSeconds: segmentMergeGapSeconds,
             temporalCoherence: temporalCoherence,
             speakerReliability: speakerReliability,
-            featureWeights: featureWeights
+            featureWeights: featureWeights,
+            featureWeighting: featureWeighting
+        )
+    }
+
+    func replacingFeatureWeighting(
+        _ featureWeighting: SpeakerFeatureWeighting
+    ) -> Self {
+        .init(
+            expectedSpeakerCount: expectedSpeakerCount,
+            maximumSpeakerCount: maximumSpeakerCount,
+            minimumSpeakerObservationsPerCluster: minimumSpeakerObservationsPerCluster,
+            minimumSplitImprovement: minimumSplitImprovement,
+            maximumIterations: maximumIterations,
+            segmentMergeGapSeconds: segmentMergeGapSeconds,
+            temporalCoherence: temporalCoherence,
+            speakerReliability: speakerReliability,
+            featureWeights: featureWeights,
+            featureWeighting: featureWeighting
         )
     }
 }
@@ -162,21 +186,26 @@ public extension Diarizer {
     ) -> SpeakerDiarizationReplayExperiment {
         guard let method = source.method else {
             return .init(
+                baselineFeatureWeighting: nil,
                 baselineClustering: nil,
                 results: []
             )
         }
 
         let baselineConfiguration = SpeakerDiarizationReplayConfiguration(
-            method.configuration
+            method
         )
 
         let results = candidates.map { candidate in
             let replayed = replay(
                 source,
-                configuration: baselineConfiguration.replacingFeatureWeights(
-                    candidate.featureWeights
-                )
+                configuration: baselineConfiguration
+                    .replacingFeatureWeights(
+                        candidate.featureWeights
+                    )
+                    .replacingFeatureWeighting(
+                        candidate.featureWeighting
+                    )
             )
 
             return SpeakerDiarizationReplayExperimentResult(
@@ -191,6 +220,7 @@ public extension Diarizer {
         }
 
         return .init(
+            baselineFeatureWeighting: method.featureWeighting,
             baselineClustering: method.normalizedClusteringEvaluation,
             results: results
         )

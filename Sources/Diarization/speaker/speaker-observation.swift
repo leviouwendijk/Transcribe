@@ -69,6 +69,7 @@ public struct SpeakerObservation:
     public let acousticObservationIDs: [AcousticObservationID]
     public let features: SpeakerFeatureVector
     public let qualityScore: Double
+    public let embedding: SpeakerEmbedding?
     public let viewAgreement: AcousticViewAgreement?
 
     public init(
@@ -77,6 +78,7 @@ public struct SpeakerObservation:
         acousticObservationIDs: [AcousticObservationID],
         features: SpeakerFeatureVector,
         qualityScore: Double,
+        embedding: SpeakerEmbedding? = nil,
         viewAgreement: AcousticViewAgreement? = nil
     ) {
         self.id = id
@@ -84,6 +86,7 @@ public struct SpeakerObservation:
         self.acousticObservationIDs = acousticObservationIDs
         self.features = features
         self.qualityScore = qualityScore
+        self.embedding = embedding
         self.viewAgreement = viewAgreement
     }
 }

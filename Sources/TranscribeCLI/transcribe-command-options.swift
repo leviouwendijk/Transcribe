@@ -185,7 +185,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
 
         @Flag(
             "speaker-calibration",
-            help: "Replay the experimental MFCC/logMel/spectral weight grid without changing production defaults."
+            help: "Replay experimental speaker feature weighting without changing production defaults."
         )
         var speakerCalibration: Bool
 

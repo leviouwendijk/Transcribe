@@ -16,20 +16,6 @@ public struct SpeakerID:
     }
 }
 
-public struct SpeakerEmbedding:
-    Sendable,
-    Codable,
-    Hashable
-{
-    public let values: [Float]
-
-    public init(
-        _ values: [Float]
-    ) {
-        self.values = values
-    }
-}
-
 public struct SpeakerFeatureVector:
     Sendable,
     Codable,
@@ -66,6 +52,7 @@ public struct SpeakerProfile:
     public let acousticCentroid: SpeakerFeatureVector?
     public let acousticDispersion: SpeakerFeatureVector?
     public let acousticProfile: SpeakerAcousticProfile?
+    public let embeddingProfile: SpeakerEmbeddingProfile?
     public let embeddingCentroid: SpeakerEmbedding?
     public let embeddingDispersion: SpeakerEmbedding?
 
@@ -76,6 +63,7 @@ public struct SpeakerProfile:
         acousticCentroid: SpeakerFeatureVector? = nil,
         acousticDispersion: SpeakerFeatureVector? = nil,
         acousticProfile: SpeakerAcousticProfile? = nil,
+        embeddingProfile: SpeakerEmbeddingProfile? = nil,
         embeddingCentroid: SpeakerEmbedding? = nil,
         embeddingDispersion: SpeakerEmbedding? = nil
     ) {
@@ -85,6 +73,7 @@ public struct SpeakerProfile:
         self.acousticCentroid = acousticCentroid
         self.acousticDispersion = acousticDispersion
         self.acousticProfile = acousticProfile
+        self.embeddingProfile = embeddingProfile
         self.embeddingCentroid = embeddingCentroid
         self.embeddingDispersion = embeddingDispersion
     }
