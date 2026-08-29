@@ -27,6 +27,12 @@ let package = Package(
             ]
         ),
         .library(
+            name: "EmbeddingProviderFluidAudio",
+            targets: [
+                "EmbeddingProviderFluidAudio",
+            ]
+        ),
+        .library(
             name: "SpeechAnalysis",
             targets: [
                 "SpeechAnalysis",
@@ -55,6 +61,10 @@ let package = Package(
         .package(
             url: "https://github.com/leviouwendijk/Arguments.git",
             branch: "master"
+        ),
+        .package(
+            url: "https://github.com/FluidInference/FluidAudio.git",
+            exact: "0.15.5"
         ),
         .package(
             url: "https://github.com/leviouwendijk/Media.git",
@@ -96,6 +106,24 @@ let package = Package(
                 ),
                 .product(
                     name: "MediaAudio",
+                    package: "Media"
+                ),
+            ]
+        ),
+        .target(
+            name: "EmbeddingProviderFluidAudio",
+            dependencies: [
+                "Diarization",
+                .product(
+                    name: "FluidAudio",
+                    package: "FluidAudio"
+                ),
+                .product(
+                    name: "MediaAudio",
+                    package: "Media"
+                ),
+                .product(
+                    name: "MediaCore",
                     package: "Media"
                 ),
             ]
@@ -170,6 +198,7 @@ let package = Package(
                 "Transcribe",
                 "TranscribeApple",
                 "Diarization",
+                "EmbeddingProviderFluidAudio",
                 "SpeechAnalysis",
                 "SpeechAnalysisContext",
                 .product(
