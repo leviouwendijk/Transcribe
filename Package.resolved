@@ -1,5 +1,5 @@
 {
-  "originHash" : "8f88fe2107b8d3dc34ce2c3b791e42e892e91080ba29dab3a25f9e4375e260da",
+  "originHash" : "ed89ebd7a75e128f0d477e14200a73e776eed457c9847b230d8a8b78b84f6149",
   "pins" : [
     {
       "identity" : "ansi",
@@ -25,7 +25,7 @@
       "location" : "https://github.com/leviouwendijk/Difference.git",
       "state" : {
         "branch" : "master",
-        "revision" : "ca0f33316fcf56ace04f1f5a1bb178667a291abc"
+        "revision" : "3fa70acbc0b96bbaf5a5021e362b48e399ca6c1e"
       }
     },
     {
@@ -79,7 +79,7 @@
       "location" : "https://github.com/leviouwendijk/Path.git",
       "state" : {
         "branch" : "master",
-        "revision" : "8f99bc23b206ce37b81dcedf86142e795932cb19"
+        "revision" : "95fefcdcb3b27fac6163cc998911fcc8a223ccf1"
       }
     },
     {
@@ -110,6 +110,15 @@
       }
     },
     {
+      "identity" : "schema",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Schema.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "c8c2c3871056cc3bd151ec70081d68baee9eba5a"
+      }
+    },
+    {
       "identity" : "strings",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/leviouwendijk/Strings",
@@ -119,12 +128,21 @@
       }
     },
     {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax.git",
+      "state" : {
+        "revision" : "79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1",
+        "version" : "603.0.2"
+      }
+    },
+    {
       "identity" : "terminal",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/leviouwendijk/Terminal.git",
       "state" : {
         "branch" : "master",
-        "revision" : "3424fe9a5a13942d9961adbc0dcb44925bce75b7"
+        "revision" : "d11451d89d1617ce912e33723d6194acad384838"
       }
     },
     {

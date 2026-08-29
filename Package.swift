@@ -32,6 +32,12 @@ let package = Package(
                 "SpeechAnalysis",
             ]
         ),
+        .library(
+            name: "SpeechAnalysisContext",
+            targets: [
+                "SpeechAnalysisContext",
+            ]
+        ),
         .executable(
             name: "transcribe",
             targets: [
@@ -48,6 +54,10 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/leviouwendijk/Media.git",
+            branch: "master"
+        ),
+        .package(
+            url: "https://github.com/leviouwendijk/Schema.git",
             branch: "master"
         ),
         .package(
@@ -90,6 +100,22 @@ let package = Package(
             ]
         ),
         .target(
+            name: "SpeechAnalysisContext",
+            dependencies: [
+                "Transcribe",
+                "Diarization",
+                "SpeechAnalysis",
+                .product(
+                    name: "MediaCore",
+                    package: "Media"
+                ),
+                .product(
+                    name: "Schema",
+                    package: "Schema"
+                ),
+            ]
+        ),
+        .target(
             name: "TranscribeApple",
             dependencies: [
                 "Transcribe",
@@ -120,9 +146,14 @@ let package = Package(
                 "TranscribeApple",
                 "Diarization",
                 "SpeechAnalysis",
+                "SpeechAnalysisContext",
                 .product(
                     name: "MediaCore",
                     package: "Media"
+                ),
+                .product(
+                    name: "Schema",
+                    package: "Schema"
                 ),
                 .product(
                     name: "TestFlows",
