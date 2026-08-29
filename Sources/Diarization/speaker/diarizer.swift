@@ -90,6 +90,7 @@ public struct Diarizer: Sendable {
         let result = diarize(
             evidence.raw,
             enhanced: evidence.enhanced,
+            noiseEvidence: evidence.noiseEvidence,
             configuration: configuration
         )
 
@@ -108,6 +109,7 @@ public struct Diarizer: Sendable {
     public func diarize(
         _ analysis: AcousticAnalysis,
         enhanced: AcousticAnalysis? = nil,
+        noiseEvidence: [AcousticNoiseEvidence] = [],
         configuration: DiarizationConfiguration = .init()
     ) -> DiarizationResult {
         let observations = SpeakerObservationBuilder(
@@ -126,12 +128,18 @@ public struct Diarizer: Sendable {
             )
         }
 
+        let reliabilities = speakerObservationReliabilities(
+            observations: observations,
+            noiseEvidence: noiseEvidence
+        )
+
         let originalVectors = observations.map {
             $0.features.values
         }
 
-        let standardizedVectors = standardized(
-            originalVectors
+        let standardizedVectors = reliabilityStandardized(
+            originalVectors,
+            weights: reliabilities
         )
 
         let vectors = standardizedVectors.enumerated().map {
@@ -149,6 +157,7 @@ public struct Diarizer: Sendable {
         if let expected = configuration.expectedSpeakerCount {
             clustering = kMeans(
                 vectors: vectors,
+                reliabilities: reliabilities,
                 count: min(
                     max(
                         1,
@@ -161,6 +170,7 @@ public struct Diarizer: Sendable {
         } else {
             clustering = automaticClustering(
                 vectors: vectors,
+                reliabilities: reliabilities,
                 configuration: configuration
             )
         }
@@ -171,10 +181,15 @@ public struct Diarizer: Sendable {
             )
         }
 
-        let confidences = assignmentConfidences(
-            vectors: vectors,
-            clustering: clustering
-        )
+        let confidences = zip(
+            assignmentConfidences(
+                vectors: vectors,
+                clustering: clustering
+            ),
+            reliabilities
+        ).map {
+            $0.0 * $0.1
+        }
 
         let segments = speakerSegments(
             observations: observations,
@@ -188,6 +203,7 @@ public struct Diarizer: Sendable {
             observations: observations,
             originalVectors: originalVectors,
             assignments: clustering.assignments,
+            reliabilities: reliabilities,
             speakerIDs: speakerIDs,
             analysis: analysis,
             enhanced: enhanced
@@ -211,10 +227,12 @@ private struct ClusterResult {
 private extension Diarizer {
     func automaticClustering(
         vectors: [[Double]],
+        reliabilities: [Double],
         configuration: DiarizationConfiguration
     ) -> ClusterResult {
         var selected = kMeans(
             vectors: vectors,
+            reliabilities: reliabilities,
             count: 1,
             maximumIterations: configuration.maximumIterations
         )
@@ -239,6 +257,7 @@ private extension Diarizer {
         for count in 2...maximum {
             let candidate = kMeans(
                 vectors: vectors,
+                reliabilities: reliabilities,
                 count: count,
                 maximumIterations: configuration.maximumIterations
             )
@@ -275,6 +294,7 @@ private extension Diarizer {
 
     func kMeans(
         vectors: [[Double]],
+        reliabilities requestedReliabilities: [Double],
         count: Int,
         maximumIterations: Int
     ) -> ClusterResult {
@@ -286,6 +306,14 @@ private extension Diarizer {
             )
         }
 
+        let reliabilities = requestedReliabilities.count
+            == vectors.count
+            ? requestedReliabilities
+            : Array(
+                repeating: 1,
+                count: vectors.count
+            )
+
         let count = min(
             max(
                 1,
@@ -294,8 +322,17 @@ private extension Diarizer {
             vectors.count
         )
 
+        var firstIndex = 0
+
+        for index in vectors.indices.dropFirst() {
+            if reliabilities[index]
+                > reliabilities[firstIndex] {
+                firstIndex = index
+            }
+        }
+
         var centroids: [[Double]] = [
-            vectors[0],
+            vectors[firstIndex],
         ]
 
         while centroids.count < count {
@@ -313,8 +350,11 @@ private extension Diarizer {
                     .min()
                     ?? 0
 
-                if nearest > bestDistance {
-                    bestDistance = nearest
+                let score = nearest
+                    * reliabilities[index]
+
+                if score > bestDistance {
+                    bestDistance = score
                     bestIndex = index
                 }
             }
@@ -339,9 +379,10 @@ private extension Diarizer {
                 )
             }
 
-            centroids = recomputedCentroids(
+            centroids = reliabilityRecomputedCentroids(
                 vectors: vectors,
                 assignments: assignments,
+                reliabilities: reliabilities,
                 previous: centroids
             )
 
@@ -353,10 +394,11 @@ private extension Diarizer {
         var squaredError = 0.0
 
         for index in vectors.indices {
-            squaredError += distanceSquared(
-                vectors[index],
-                centroids[assignments[index]]
-            )
+            squaredError += reliabilities[index]
+                * distanceSquared(
+                    vectors[index],
+                    centroids[assignments[index]]
+                )
         }
 
         return .init(
@@ -598,6 +640,7 @@ private extension Diarizer {
         observations: [SpeakerObservation],
         originalVectors: [[Double]],
         assignments: [Int],
+        reliabilities: [Double],
         speakerIDs: [SpeakerID],
         analysis: AcousticAnalysis,
         enhanced: AcousticAnalysis?
@@ -629,6 +672,15 @@ private extension Diarizer {
                 originalVectors[$0]
             }
 
+            let modelReliabilities = indices.map {
+                reliabilities[$0]
+            }
+
+            let centroid = reliabilityWeightedMeanVector(
+                vectors,
+                weights: modelReliabilities
+            )
+
             let acousticObservations = indices.flatMap { index in
                 observations[index]
                     .acousticObservationIDs
@@ -656,13 +708,13 @@ private extension Diarizer {
                     $0 + observations[$1].range.duration
                 },
                 acousticCentroid: .init(
-                    meanVector(
-                        vectors
-                    )
+                    centroid
                 ),
                 acousticDispersion: .init(
-                    dispersionVector(
-                        vectors
+                    reliabilityWeightedDispersionVector(
+                        vectors,
+                        weights: modelReliabilities,
+                        mean: centroid
                     )
                 ),
                 acousticProfile: .init(
