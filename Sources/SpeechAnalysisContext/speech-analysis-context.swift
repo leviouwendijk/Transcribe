@@ -352,6 +352,7 @@ public struct SpeechAnalysisSpeakerObservationContext:
     public let featureCoordinates: [SpeechAnalysisFeatureCoordinateContext]
     public let qualityScore: Double
     public let embeddingValues: [Double]
+    public let embeddingProviderIdentifier: String?
     public let embeddingModelIdentifier: String?
     public let embeddingNormalization: String?
     public let viewAgreement: Double?
@@ -787,6 +788,7 @@ private extension SpeechAnalysisContextProjector {
             featureCoordinates: value.features.coordinates.map(featureCoordinate),
             qualityScore: value.qualityScore,
             embeddingValues: value.embedding?.values.map(Double.init) ?? [],
+            embeddingProviderIdentifier: value.embedding?.provenance?.providerIdentifier,
             embeddingModelIdentifier: value.embedding?.provenance?.modelIdentifier,
             embeddingNormalization: value.embedding?.provenance?.normalization.rawValue,
             viewAgreement: value.viewAgreement?.combined

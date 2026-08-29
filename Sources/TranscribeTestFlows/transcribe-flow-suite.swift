@@ -18,6 +18,7 @@ enum TranscribeFlowSuite: TestFlowRegistry {
         speakerDiarizationReplayFlow,
         speakerDiarizationReplayCalibrationFlow,
         speakerEmbeddingFlow,
+        speakerEmbeddingProviderFlow,
         transcribeCLIObservabilityFlow,
         parallelAcousticFlow,
         acousticPerformanceFlow,

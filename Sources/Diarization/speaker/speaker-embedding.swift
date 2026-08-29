@@ -13,13 +13,16 @@ public struct SpeakerEmbeddingProvenance:
     Codable,
     Hashable
 {
+    public let providerIdentifier: String?
     public let modelIdentifier: String?
     public let normalization: SpeakerEmbeddingNormalization
 
     public init(
+        providerIdentifier: String? = nil,
         modelIdentifier: String? = nil,
         normalization: SpeakerEmbeddingNormalization = .none
     ) {
+        self.providerIdentifier = providerIdentifier
         self.modelIdentifier = modelIdentifier
         self.normalization = normalization
     }
@@ -65,6 +68,7 @@ public struct SpeakerEmbedding:
                 )
             },
             provenance: .init(
+                providerIdentifier: provenance?.providerIdentifier,
                 modelIdentifier: provenance?.modelIdentifier,
                 normalization: .l2
             )
@@ -189,6 +193,16 @@ public struct SpeakerEmbeddingProfile:
             )
         }
 
+        let commonProviderIdentifier = embeddings
+            .map {
+                $0.provenance?.providerIdentifier
+            }
+            .allSatisfy({
+                $0 == embeddings.first?.provenance?.providerIdentifier
+            })
+            ? embeddings.first?.provenance?.providerIdentifier
+            : nil
+
         let commonModelIdentifier = embeddings
             .map {
                 $0.provenance?.modelIdentifier
@@ -202,6 +216,7 @@ public struct SpeakerEmbeddingProfile:
         guard let centroid = SpeakerEmbedding(
             mean.map(Float.init),
             provenance: .init(
+                providerIdentifier: commonProviderIdentifier,
                 modelIdentifier: commonModelIdentifier,
                 normalization: .none
             )
