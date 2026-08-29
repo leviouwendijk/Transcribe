@@ -1,6 +1,7 @@
 import Diarization
 import MediaCore
 import Schema
+import SchemaMacros
 import SpeechAnalysis
 import Transcribe
 
@@ -233,6 +234,8 @@ public struct SpeechAnalysisDiarizationMethodContext:
 {
     /// Exact configuration consumed by the diarization run.
     public let configuration: SpeechAnalysisDiarizationConfigurationContext
+    /// Weighting semantics used to derive effective coordinate weights.
+    public let featureWeighting: String
     /// Exact semantic coordinate layout and effective weights clustered in this run.
     public let featureSpace: [SpeechAnalysisFeatureCoordinateContext]
     public let standardization: SpeechAnalysisStandardizationContext
@@ -726,6 +729,7 @@ private extension SpeechAnalysisContextProjector {
     ) -> SpeechAnalysisDiarizationMethodContext {
         .init(
             configuration: diarizationConfiguration(value.configuration),
+            featureWeighting: value.featureWeighting.rawValue,
             featureSpace: value.featureSpace.map(featureCoordinate),
             standardization: .init(
                 means: value.standardization.means,

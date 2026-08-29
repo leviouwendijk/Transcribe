@@ -1,5 +1,5 @@
 {
-  "originHash" : "ed89ebd7a75e128f0d477e14200a73e776eed457c9847b230d8a8b78b84f6149",
+  "originHash" : "22f13ea1a373d8e286bec2a3031ce4fb4af5476ee86447a6c28d8fae78589f52",
   "pins" : [
     {
       "identity" : "ansi",
@@ -22,10 +22,10 @@
     {
       "identity" : "difference",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/leviouwendijk/Difference.git",
+      "location" : "https://github.com/leviouwendijk/Difference",
       "state" : {
         "branch" : "master",
-        "revision" : "3fa70acbc0b96bbaf5a5021e362b48e399ca6c1e"
+        "revision" : "7d295238c789f009fd720f3cf5ca8e730068c0c5"
       }
     },
     {
@@ -115,7 +115,16 @@
       "location" : "https://github.com/leviouwendijk/Schema.git",
       "state" : {
         "branch" : "master",
-        "revision" : "c8c2c3871056cc3bd151ec70081d68baee9eba5a"
+        "revision" : "c1b0f99a0b7ffdda0e2a566b656709996a4a3ae3"
+      }
+    },
+    {
+      "identity" : "schemamacros",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/SchemaMacros.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "2441b49a5159c375b094672a0ba0ae338829ec32"
       }
     },
     {
@@ -142,7 +151,7 @@
       "location" : "https://github.com/leviouwendijk/Terminal.git",
       "state" : {
         "branch" : "master",
-        "revision" : "d11451d89d1617ce912e33723d6194acad384838"
+        "revision" : "16e1744d0412df4dbfcd181b6725241e23939055"
       }
     },
     {
