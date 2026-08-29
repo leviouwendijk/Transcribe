@@ -190,13 +190,6 @@ public struct Diarizer: Sendable {
             clustering: clustering
         )
 
-        let confidences = zip(
-            acousticConfidences,
-            reliabilities
-        ).map {
-            $0.0 * $0.1
-        }
-
         let acousticAssignments = speakerObservationAssignments(
             observations: observations,
             vectors: vectors,
@@ -218,10 +211,23 @@ public struct Diarizer: Sendable {
             speakerIDs: speakerIDs
         )
 
+        let resolvedConfidences = resolvedAssignments.map {
+            $0.resolvedConfidence
+                ?? 0
+        }
+
+        let profileAssignments = resolvedAssignments.indices.map {
+            resolvedAssignments[$0].changedByContinuity
+                ? nil
+                : Optional(
+                    clustering.assignments[$0]
+                )
+        }
+
         let segments = speakerSegments(
             observations: observations,
             assignments: resolvedClusters,
-            confidences: confidences,
+            confidences: resolvedConfidences,
             speakerIDs: speakerIDs,
             mergeGapSeconds: configuration.segmentMergeGapSeconds
         )
@@ -229,7 +235,7 @@ public struct Diarizer: Sendable {
         let profiles = speakerProfiles(
             observations: observations,
             originalVectors: originalVectors,
-            assignments: resolvedClusters,
+            assignments: profileAssignments,
             reliabilities: reliabilities,
             speakerIDs: speakerIDs,
             analysis: analysis,
@@ -677,6 +683,45 @@ private extension Diarizer {
         speakerIDs: [SpeakerID],
         mergeGapSeconds: Double
     ) -> [SpeakerSegment] {
+        let observationIndexByID = Dictionary(
+            uniqueKeysWithValues: observations.indices.map {
+                (
+                    observations[$0].id,
+                    $0
+                )
+            }
+        )
+
+        func confidence(
+            for observationIDs: [SpeakerObservationID]
+        ) -> Double? {
+            var weightedConfidence = 0.0
+            var totalWeight = 0.0
+
+            for observationID in observationIDs {
+                guard let index = observationIndexByID[observationID],
+                      index < confidences.count else {
+                    continue
+                }
+
+                let weight = max(
+                    observations[index].range.duration,
+                    1e-12
+                )
+
+                weightedConfidence += confidences[index]
+                    * weight
+                totalWeight += weight
+            }
+
+            guard totalWeight > 0 else {
+                return nil
+            }
+
+            return weightedConfidence
+                / totalWeight
+        }
+
         var output: [SpeakerSegment] = []
 
         for index in observations.indices {
@@ -688,7 +733,9 @@ private extension Diarizer {
             let segment = SpeakerSegment(
                 range: observation.range,
                 speaker: speaker,
-                confidence: confidences[index],
+                confidence: index < confidences.count
+                    ? confidences[index]
+                    : nil,
                 observationIDs: [
                     observation.id,
                 ]
@@ -710,6 +757,9 @@ private extension Diarizer {
                 segment.range.end
             )
 
+            let observationIDs = previous.observationIDs
+                + segment.observationIDs
+
             output[output.count - 1] = .init(
                 range: .init(
                     start: previous.range.start,
@@ -717,12 +767,10 @@ private extension Diarizer {
                         - previous.range.start
                 ),
                 speaker: speaker,
-                confidence: average(
-                    previous.confidence,
-                    segment.confidence
+                confidence: confidence(
+                    for: observationIDs
                 ),
-                observationIDs: previous.observationIDs
-                    + segment.observationIDs
+                observationIDs: observationIDs
             )
         }
 
@@ -732,7 +780,7 @@ private extension Diarizer {
     func speakerProfiles(
         observations: [SpeakerObservation],
         originalVectors: [[Double]],
-        assignments: [Int],
+        assignments: [Int?],
         reliabilities: [Double],
         speakerIDs: [SpeakerID],
         analysis: AcousticAnalysis,
@@ -758,7 +806,9 @@ private extension Diarizer {
 
         return speakerIDs.indices.compactMap { cluster in
             let indices = observations.indices.filter {
-                assignments[$0] == cluster
+                assignments[$0] == .some(
+                    cluster
+                )
             }
 
             guard !indices.isEmpty else {
@@ -948,25 +998,4 @@ private extension Diarizer {
         return result
     }
 
-    func average(
-        _ lhs: Double?,
-        _ rhs: Double?
-    ) -> Double? {
-        switch (
-            lhs,
-            rhs
-        ) {
-        case let (.some(lhs), .some(rhs)):
-            return (
-                lhs + rhs
-            ) / 2
-
-        case let (.some(value), .none),
-             let (.none, .some(value)):
-            return value
-
-        case (.none, .none):
-            return nil
-        }
-    }
 }

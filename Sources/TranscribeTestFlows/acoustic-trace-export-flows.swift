@@ -96,6 +96,21 @@ extension TranscribeFlowSuite {
                     "trace-export.speaker"
                 )
 
+                let speakerRows = rows.filter {
+                    $0.speaker != nil
+                }
+
+                try Expect.equal(
+                    speakerRows.allSatisfy {
+                        $0.speakerAcousticConfidence != nil
+                            && $0.speakerReliability != nil
+                            && $0.speakerEvidenceStrength != nil
+                            && $0.speakerResolvedConfidence != nil
+                    },
+                    true,
+                    "trace-export.speaker-assignment-diagnostics"
+                )
+
                 let csv = result.acousticTraceCSV()
 
                 try Expect.equal(
@@ -104,6 +119,14 @@ extension TranscribeFlowSuite {
                     ),
                     true,
                     "trace-export.header"
+                )
+
+                try Expect.equal(
+                    csv.contains(
+                        "speaker_acoustic_confidence,speaker_reliability,speaker_evidence_strength,speaker_resolved_confidence"
+                    ),
+                    true,
+                    "trace-export.speaker-diagnostic-header"
                 )
 
                 try Expect.equal(

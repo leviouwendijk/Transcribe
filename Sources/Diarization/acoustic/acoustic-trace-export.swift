@@ -10,6 +10,10 @@ public struct AcousticTraceExportRow:
     public let speaker: SpeakerID?
     public let acousticSpeaker: SpeakerID?
     public let temporalAdjusted: Bool
+    public let speakerAcousticConfidence: Double?
+    public let speakerReliability: Double?
+    public let speakerEvidenceStrength: Double?
+    public let speakerResolvedConfidence: Double?
 
     public let rawRMS: Double
     public let enhancedRMS: Double?
@@ -41,6 +45,10 @@ public struct AcousticTraceExportRow:
         speaker: SpeakerID?,
         acousticSpeaker: SpeakerID?,
         temporalAdjusted: Bool,
+        speakerAcousticConfidence: Double?,
+        speakerReliability: Double?,
+        speakerEvidenceStrength: Double?,
+        speakerResolvedConfidence: Double?,
         rawRMS: Double,
         enhancedRMS: Double?,
         enhancementGainDB: Double?,
@@ -66,6 +74,10 @@ public struct AcousticTraceExportRow:
         self.speaker = speaker
         self.acousticSpeaker = acousticSpeaker
         self.temporalAdjusted = temporalAdjusted
+        self.speakerAcousticConfidence = speakerAcousticConfidence
+        self.speakerReliability = speakerReliability
+        self.speakerEvidenceStrength = speakerEvidenceStrength
+        self.speakerResolvedConfidence = speakerResolvedConfidence
         self.rawRMS = rawRMS
         self.enhancedRMS = enhancedRMS
         self.enhancementGainDB = enhancementGainDB
@@ -124,6 +136,10 @@ public extension DiarizationResult {
         var speakerByAcousticID: [AcousticObservationID: SpeakerID] = [:]
         var acousticSpeakerByAcousticID: [AcousticObservationID: SpeakerID] = [:]
         var temporalAdjustedByAcousticID: [AcousticObservationID: Bool] = [:]
+        var acousticConfidenceByAcousticID: [AcousticObservationID: Double] = [:]
+        var reliabilityByAcousticID: [AcousticObservationID: Double] = [:]
+        var evidenceStrengthByAcousticID: [AcousticObservationID: Double] = [:]
+        var resolvedConfidenceByAcousticID: [AcousticObservationID: Double] = [:]
         var agreementByAcousticID: [AcousticObservationID: Double] = [:]
 
         let noiseByAcousticID = Dictionary(
@@ -148,6 +164,13 @@ public extension DiarizationResult {
                 for acousticID in observation.acousticObservationIDs {
                     acousticSpeakerByAcousticID[acousticID] = assignment.acousticSpeaker
                     temporalAdjustedByAcousticID[acousticID] = assignment.changedByContinuity
+                    acousticConfidenceByAcousticID[acousticID] = assignment.acousticConfidence
+                    reliabilityByAcousticID[acousticID] = assignment.reliability
+                    evidenceStrengthByAcousticID[acousticID] = assignment.acousticEvidenceStrength
+
+                    if let resolvedConfidence = assignment.resolvedConfidence {
+                        resolvedConfidenceByAcousticID[acousticID] = resolvedConfidence
+                    }
                 }
             }
         }
@@ -205,6 +228,10 @@ public extension DiarizationResult {
                 speaker: speakerByAcousticID[raw.id],
                 acousticSpeaker: acousticSpeakerByAcousticID[raw.id],
                 temporalAdjusted: temporalAdjustedByAcousticID[raw.id] ?? false,
+                speakerAcousticConfidence: acousticConfidenceByAcousticID[raw.id],
+                speakerReliability: reliabilityByAcousticID[raw.id],
+                speakerEvidenceStrength: evidenceStrengthByAcousticID[raw.id],
+                speakerResolvedConfidence: resolvedConfidenceByAcousticID[raw.id],
                 rawRMS: raw.signal.rms,
                 enhancedRMS: enhanced?.signal.rms,
                 enhancementGainDB: gain,
@@ -235,6 +262,10 @@ public extension DiarizationResult {
             "speaker",
             "acoustic_speaker",
             "temporal_adjusted",
+            "speaker_acoustic_confidence",
+            "speaker_reliability",
+            "speaker_evidence_strength",
+            "speaker_resolved_confidence",
             "raw_rms",
             "enhanced_rms",
             "enhancement_gain_db",
@@ -269,6 +300,10 @@ public extension DiarizationResult {
                     row.acousticSpeaker?.rawValue ?? ""
                 ),
                 row.temporalAdjusted ? "1" : "0",
+                traceOptionalDecimal(row.speakerAcousticConfidence),
+                traceOptionalDecimal(row.speakerReliability),
+                traceOptionalDecimal(row.speakerEvidenceStrength),
+                traceOptionalDecimal(row.speakerResolvedConfidence),
                 traceDecimal(row.rawRMS),
                 traceOptionalDecimal(row.enhancedRMS),
                 traceOptionalDecimal(row.enhancementGainDB),

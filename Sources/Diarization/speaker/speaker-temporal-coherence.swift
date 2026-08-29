@@ -84,6 +84,17 @@ public struct SpeakerObservationAssignment:
     public var changedByContinuity: Bool {
         acousticSpeaker != resolvedSpeaker
     }
+
+    public var acousticEvidenceStrength: Double {
+        acousticConfidence
+            * reliability
+    }
+
+    public var resolvedConfidence: Double? {
+        changedByContinuity
+            ? nil
+            : acousticEvidenceStrength
+    }
 }
 
 public struct SpeakerTemporalCoherence: Sendable {
@@ -183,7 +194,8 @@ public struct SpeakerTemporalCoherence: Sendable {
                                 from: previousSpeaker,
                                 to: speaker,
                                 previousObservation: previousObservation,
-                                observation: observation
+                                observation: observation,
+                                assignment: assignments[observationIndex]
                             )
                             + emission
 
@@ -257,7 +269,8 @@ private extension SpeakerTemporalCoherence {
         from previousSpeaker: SpeakerID,
         to speaker: SpeakerID,
         previousObservation: SpeakerObservation,
-        observation: SpeakerObservation
+        observation: SpeakerObservation,
+        assignment: SpeakerObservationAssignment
     ) -> Double {
         guard previousSpeaker != speaker,
               configuration.switchPenalty > 0,
@@ -275,11 +288,19 @@ private extension SpeakerTemporalCoherence {
             return 0
         }
 
+        let gapScale = 1
+            - gap
+                / configuration.maximumContinuityGapSeconds
+
+        let switchingEvidence = assignment.acousticSpeaker == speaker
+            ? assignment.acousticEvidenceStrength
+            : 0
+
         return configuration.switchPenalty
+            * gapScale
             * (
                 1
-                    - gap
-                    / configuration.maximumContinuityGapSeconds
+                    - switchingEvidence
             )
     }
 }

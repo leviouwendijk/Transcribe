@@ -103,6 +103,21 @@ extension TranscribeFlowSuite {
                     true,
                     "temporal-coherence.correction-provenance"
                 )
+
+                try Expect.equal(
+                    resolved[2].resolvedConfidence == nil,
+                    true,
+                    "temporal-coherence.corrected-confidence-unclaimed"
+                )
+
+                try Expect.equal(
+                    abs(
+                        resolved[2].acousticEvidenceStrength
+                            - 0.08
+                    ) < 1e-12,
+                    true,
+                    "temporal-coherence.acoustic-evidence-strength-retained"
+                )
             }
 
             Step("low-reliability acoustic flips yield more authority to continuity") {
@@ -183,6 +198,150 @@ extension TranscribeFlowSuite {
                     unreliableResolved[1].resolvedSpeaker,
                     speaker2,
                     "temporal-coherence.unreliable-flip-resolved"
+                )
+            }
+
+            Step("clean short reply survives surrounding continuity") {
+                let speaker1 = SpeakerID(
+                    rawValue: "speaker_1"
+                )
+                let speaker2 = SpeakerID(
+                    rawValue: "speaker_2"
+                )
+
+                let observations = (0..<3).map {
+                    temporalObservation(
+                        id: $0,
+                        start: Double($0) * 0.4
+                    )
+                }
+
+                let assignments = [
+                    temporalAssignment(
+                        id: 0,
+                        acousticSpeaker: speaker2,
+                        speaker1: speaker1,
+                        speaker2: speaker2,
+                        speaker1Cost: 1,
+                        speaker2Cost: 0.1,
+                        confidence: 0.9
+                    ),
+                    temporalAssignment(
+                        id: 1,
+                        acousticSpeaker: speaker1,
+                        speaker1: speaker1,
+                        speaker2: speaker2,
+                        speaker1Cost: 0.45,
+                        speaker2Cost: 1,
+                        confidence: 0.55
+                    ),
+                    temporalAssignment(
+                        id: 2,
+                        acousticSpeaker: speaker2,
+                        speaker1: speaker1,
+                        speaker2: speaker2,
+                        speaker1Cost: 1,
+                        speaker2Cost: 0.1,
+                        confidence: 0.9
+                    ),
+                ]
+
+                let resolved = SpeakerTemporalCoherence().resolve(
+                    observations: observations,
+                    assignments: assignments
+                )
+
+                try Expect.equal(
+                    resolved[1].resolvedSpeaker,
+                    speaker1,
+                    "temporal-coherence.clean-short-reply-survives"
+                )
+
+                try Expect.equal(
+                    resolved[1].changedByContinuity,
+                    false,
+                    "temporal-coherence.clean-short-reply-unchanged"
+                )
+
+                try Expect.equal(
+                    abs(
+                        (
+                            resolved[1].resolvedConfidence
+                                ?? 0
+                        ) - 0.55
+                    ) < 1e-12,
+                    true,
+                    "temporal-coherence.clean-short-reply-confidence"
+                )
+            }
+
+            Step("moderate onset of sustained turn keeps its acoustic boundary") {
+                let speaker1 = SpeakerID(
+                    rawValue: "speaker_1"
+                )
+                let speaker2 = SpeakerID(
+                    rawValue: "speaker_2"
+                )
+
+                let observations = (0..<4).map {
+                    temporalObservation(
+                        id: $0,
+                        start: Double($0) * 0.4
+                    )
+                }
+
+                let assignments = [
+                    temporalAssignment(
+                        id: 0,
+                        acousticSpeaker: speaker2,
+                        speaker1: speaker1,
+                        speaker2: speaker2,
+                        speaker1Cost: 1,
+                        speaker2Cost: 0.1,
+                        confidence: 0.9
+                    ),
+                    temporalAssignment(
+                        id: 1,
+                        acousticSpeaker: speaker2,
+                        speaker1: speaker1,
+                        speaker2: speaker2,
+                        speaker1Cost: 1,
+                        speaker2Cost: 0.1,
+                        confidence: 0.9
+                    ),
+                    temporalAssignment(
+                        id: 2,
+                        acousticSpeaker: speaker1,
+                        speaker1: speaker1,
+                        speaker2: speaker2,
+                        speaker1Cost: 0.65,
+                        speaker2Cost: 1,
+                        confidence: 0.35
+                    ),
+                    temporalAssignment(
+                        id: 3,
+                        acousticSpeaker: speaker1,
+                        speaker1: speaker1,
+                        speaker2: speaker2,
+                        speaker1Cost: 0.1,
+                        speaker2Cost: 1,
+                        confidence: 0.9
+                    ),
+                ]
+
+                let resolved = SpeakerTemporalCoherence().resolve(
+                    observations: observations,
+                    assignments: assignments
+                )
+
+                try Expect.equal(
+                    resolved.map(
+                        \.resolvedSpeaker
+                    ),
+                    assignments.map(
+                        \.acousticSpeaker
+                    ),
+                    "temporal-coherence.moderate-turn-boundary-retained"
                 )
             }
 
@@ -437,6 +596,19 @@ extension TranscribeFlowSuite {
                     },
                     true,
                     "temporal-coherence.assignment-provenance"
+                )
+
+                try Expect.equal(
+                    result.assignments.allSatisfy {
+                        $0.acousticEvidenceStrength >= 0
+                            && $0.acousticEvidenceStrength <= 1
+                            && (
+                                !$0.changedByContinuity
+                                    || $0.resolvedConfidence == nil
+                            )
+                    },
+                    true,
+                    "temporal-coherence.confidence-provenance"
                 )
             }
         }
