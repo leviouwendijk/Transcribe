@@ -13,6 +13,7 @@ public struct DiarizationConfiguration:
     public let maximumIterations: Int
     public let segmentMergeGapSeconds: Double
     public let temporalCoherence: SpeakerTemporalCoherenceConfiguration
+    public let speakerReliability: SpeakerEvidenceReliabilityConfiguration
     public let acoustic: AcousticAnalyzerConfiguration
     public let speakerObservation: SpeakerObservationBuilder.Configuration
 
@@ -24,6 +25,7 @@ public struct DiarizationConfiguration:
         maximumIterations: Int = 32,
         segmentMergeGapSeconds: Double = 0.15,
         temporalCoherence: SpeakerTemporalCoherenceConfiguration = .init(),
+        speakerReliability: SpeakerEvidenceReliabilityConfiguration = .init(),
         acoustic: AcousticAnalyzerConfiguration = .init(),
         speakerObservation: SpeakerObservationBuilder.Configuration = .init()
     ) {
@@ -44,6 +46,7 @@ public struct DiarizationConfiguration:
         self.maximumIterations = maximumIterations
         self.segmentMergeGapSeconds = segmentMergeGapSeconds
         self.temporalCoherence = temporalCoherence
+        self.speakerReliability = speakerReliability
         self.acoustic = acoustic
         self.speakerObservation = speakerObservation
     }
@@ -102,6 +105,7 @@ public struct Diarizer: Sendable {
             profiles: result.profiles,
             observations: result.observations,
             assignments: result.assignments,
+            method: result.method,
             acoustic: evidence.raw,
             enhancedAcoustic: evidence.enhanced,
             noiseProfile: evidence.noise,
@@ -128,23 +132,33 @@ public struct Diarizer: Sendable {
                 segments: [],
                 profiles: [],
                 observations: [],
+                method: .init(
+                    configuration: configuration
+                ),
                 acoustic: analysis
             )
         }
 
-        let reliabilities = speakerObservationReliabilities(
+        let reliabilityEvaluations = speakerObservationReliabilityEvaluations(
             observations: observations,
-            noiseEvidence: noiseEvidence
+            noiseEvidence: noiseEvidence,
+            configuration: configuration.speakerReliability
+        )
+
+        let reliabilities = reliabilityEvaluations.map(
+            \.reliability
         )
 
         let originalVectors = observations.map {
             $0.features.values
         }
 
-        let standardizedVectors = reliabilityStandardized(
+        let standardization = reliabilityStandardization(
             originalVectors,
             weights: reliabilities
         )
+
+        let standardizedVectors = standardization.vectors
 
         let vectors = standardizedVectors.enumerated().map {
             index,
@@ -195,7 +209,7 @@ public struct Diarizer: Sendable {
             vectors: vectors,
             clustering: clustering,
             acousticConfidences: acousticConfidences,
-            reliabilities: reliabilities,
+            reliabilityEvaluations: reliabilityEvaluations,
             speakerIDs: speakerIDs
         )
 
@@ -247,6 +261,16 @@ public struct Diarizer: Sendable {
             profiles: profiles,
             observations: observations,
             assignments: resolvedAssignments,
+            method: .init(
+                configuration: configuration,
+                featureSpace: observations.first?.features.coordinates ?? [],
+                standardization: standardization.model,
+                clustering: .init(
+                    observationCount: observations.count,
+                    selectedSpeakerCount: clustering.centroids.count,
+                    reliabilityWeightedSquaredError: clustering.squaredError
+                )
+            ),
             acoustic: analysis
         )
     }
@@ -616,7 +640,7 @@ private extension Diarizer {
         vectors: [[Double]],
         clustering: ClusterResult,
         acousticConfidences: [Double],
-        reliabilities: [Double],
+        reliabilityEvaluations: [SpeakerEvidenceReliabilityEvaluation],
         speakerIDs: [SpeakerID]
     ) -> [SpeakerObservationAssignment] {
         observations.indices.map { index in
@@ -636,13 +660,23 @@ private extension Diarizer {
                 : 1
 
             let candidates = speakerIDs.indices.map { speakerIndex in
-                SpeakerAssignmentCandidate(
+                let squaredDistance = distances[speakerIndex]
+
+                return SpeakerAssignmentCandidate(
                     speaker: speakerIDs[speakerIndex],
                     acousticCost: speakerIDs.count > 1
-                        ? distances[speakerIndex] / scale
-                        : 0
+                        ? squaredDistance / scale
+                        : 0,
+                    squaredDistance: squaredDistance,
+                    featureContributions: speakerFeatureContributions(
+                        vector: vectors[index],
+                        centroid: clustering.centroids[speakerIndex],
+                        coordinates: observations[index].features.coordinates
+                    )
                 )
             }
+
+            let reliabilityEvaluation = reliabilityEvaluations[index]
 
             return .init(
                 observationID: observations[index].id,
@@ -650,9 +684,70 @@ private extension Diarizer {
                     clustering.assignments[index]
                 ],
                 acousticConfidence: acousticConfidences[index],
-                reliability: reliabilities[index],
+                reliability: reliabilityEvaluation.reliability,
+                reliabilityEvaluation: reliabilityEvaluation,
                 candidates: candidates
             )
+        }
+    }
+
+    func speakerFeatureContributions(
+        vector: [Double],
+        centroid: [Double],
+        coordinates: [SpeakerFeatureCoordinate]
+    ) -> [SpeakerFeatureContribution] {
+        let count = min(
+            vector.count,
+            centroid.count,
+            coordinates.count
+        )
+
+        guard count > 0 else {
+            return []
+        }
+
+        struct Key: Hashable {
+            let view: SpeakerFeatureView
+            let family: SpeakerFeatureFamily
+            let weight: Double
+        }
+
+        var distanceByKey: [Key: Double] = [:]
+
+        for index in 0..<count {
+            let coordinate = coordinates[index]
+            let delta = vector[index]
+                - centroid[index]
+            let key = Key(
+                view: coordinate.view,
+                family: coordinate.family,
+                weight: coordinate.weight
+            )
+
+            distanceByKey[key, default: 0] += delta * delta
+        }
+
+        let total = distanceByKey.values.reduce(
+            0,
+            +
+        )
+
+        return distanceByKey.map { key, distance in
+            .init(
+                view: key.view,
+                family: key.family,
+                weight: key.weight,
+                squaredDistance: distance,
+                fractionOfSquaredDistance: total > 1e-12
+                    ? distance / total
+                    : 0
+            )
+        }.sorted { lhs, rhs in
+            if lhs.view.rawValue == rhs.view.rawValue {
+                return lhs.family.rawValue < rhs.family.rawValue
+            }
+
+            return lhs.view.rawValue < rhs.view.rawValue
         }
     }
 

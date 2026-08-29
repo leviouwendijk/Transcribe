@@ -27,16 +27,25 @@ public struct SpeakerAssignmentCandidate:
 {
     public let speaker: SpeakerID
     public let acousticCost: Double
+    public let squaredDistance: Double
+    public let featureContributions: [SpeakerFeatureContribution]
 
     public init(
         speaker: SpeakerID,
-        acousticCost: Double
+        acousticCost: Double,
+        squaredDistance: Double = 0,
+        featureContributions: [SpeakerFeatureContribution] = []
     ) {
         self.speaker = speaker
         self.acousticCost = max(
             0,
             acousticCost
         )
+        self.squaredDistance = max(
+            0,
+            squaredDistance
+        )
+        self.featureContributions = featureContributions
     }
 }
 
@@ -49,8 +58,9 @@ public struct SpeakerObservationAssignment:
     public let acousticSpeaker: SpeakerID
     public let resolvedSpeaker: SpeakerID
     public let acousticConfidence: Double
-    public let reliability: Double
+    public let reliabilityEvaluation: SpeakerEvidenceReliabilityEvaluation
     public let candidates: [SpeakerAssignmentCandidate]
+    public let temporalTransition: SpeakerTransitionEvaluation?
 
     public init(
         observationID: SpeakerObservationID,
@@ -58,7 +68,9 @@ public struct SpeakerObservationAssignment:
         resolvedSpeaker: SpeakerID? = nil,
         acousticConfidence: Double,
         reliability: Double,
-        candidates: [SpeakerAssignmentCandidate]
+        reliabilityEvaluation: SpeakerEvidenceReliabilityEvaluation? = nil,
+        candidates: [SpeakerAssignmentCandidate],
+        temporalTransition: SpeakerTransitionEvaluation? = nil
     ) {
         self.observationID = observationID
         self.acousticSpeaker = acousticSpeaker
@@ -71,14 +83,19 @@ public struct SpeakerObservationAssignment:
                 acousticConfidence
             )
         )
-        self.reliability = min(
-            1,
-            max(
-                0,
-                reliability
+        self.reliabilityEvaluation = reliabilityEvaluation
+            ?? .init(
+                noiseLikelihood: nil,
+                sourceObservationCount: 0,
+                taper: 0,
+                reliability: reliability
             )
-        )
         self.candidates = candidates
+        self.temporalTransition = temporalTransition
+    }
+
+    public var reliability: Double {
+        reliabilityEvaluation.reliability
     }
 
     public var changedByContinuity: Bool {
@@ -190,13 +207,13 @@ public struct SpeakerTemporalCoherence: Sendable {
                         let cost = costs[
                             observationIndex - 1
                         ][previousSpeakerIndex]
-                            + transitionCost(
+                            + transitionEvaluation(
                                 from: previousSpeaker,
                                 to: speaker,
                                 previousObservation: previousObservation,
                                 observation: observation,
                                 assignment: assignments[observationIndex]
-                            )
+                            ).transitionCost
                             + emission
 
                         if cost < bestCost {
@@ -237,16 +254,35 @@ public struct SpeakerTemporalCoherence: Sendable {
 
         return assignments.indices.map { index in
             let assignment = assignments[index]
+            let resolvedSpeaker = speakers[
+                resolvedSpeakerIndices[index]
+            ]
+
+            let temporalTransition: SpeakerTransitionEvaluation?
+
+            if index == 0 {
+                temporalTransition = nil
+            } else {
+                temporalTransition = transitionEvaluation(
+                    from: speakers[
+                        resolvedSpeakerIndices[index - 1]
+                    ],
+                    to: resolvedSpeaker,
+                    previousObservation: observations[index - 1],
+                    observation: observations[index],
+                    assignment: assignment
+                )
+            }
 
             return .init(
                 observationID: assignment.observationID,
                 acousticSpeaker: assignment.acousticSpeaker,
-                resolvedSpeaker: speakers[
-                    resolvedSpeakerIndices[index]
-                ],
+                resolvedSpeaker: resolvedSpeaker,
                 acousticConfidence: assignment.acousticConfidence,
                 reliability: assignment.reliability,
-                candidates: assignment.candidates
+                reliabilityEvaluation: assignment.reliabilityEvaluation,
+                candidates: assignment.candidates,
+                temporalTransition: temporalTransition
             )
         }
     }
@@ -265,42 +301,49 @@ private extension SpeakerTemporalCoherence {
             * assignment.reliability
     }
 
-    func transitionCost(
+    func transitionEvaluation(
         from previousSpeaker: SpeakerID,
         to speaker: SpeakerID,
         previousObservation: SpeakerObservation,
         observation: SpeakerObservation,
         assignment: SpeakerObservationAssignment
-    ) -> Double {
-        guard previousSpeaker != speaker,
-              configuration.switchPenalty > 0,
-              configuration.maximumContinuityGapSeconds > 0 else {
-            return 0
-        }
-
+    ) -> SpeakerTransitionEvaluation {
         let gap = max(
             0,
             observation.range.start
                 - previousObservation.range.end
         )
 
-        guard gap < configuration.maximumContinuityGapSeconds else {
-            return 0
+        let gapScale: Double
+
+        if configuration.maximumContinuityGapSeconds > 0,
+           gap < configuration.maximumContinuityGapSeconds {
+            gapScale = 1
+                - gap
+                    / configuration.maximumContinuityGapSeconds
+        } else {
+            gapScale = 0
         }
 
-        let gapScale = 1
-            - gap
-                / configuration.maximumContinuityGapSeconds
-
-        let switchingEvidence = assignment.acousticSpeaker == speaker
+        let switchingEvidence = previousSpeaker != speaker
+            && assignment.acousticSpeaker == speaker
             ? assignment.acousticEvidenceStrength
             : 0
 
-        return configuration.switchPenalty
-            * gapScale
-            * (
-                1
-                    - switchingEvidence
-            )
+        let transitionCost = previousSpeaker != speaker
+            ? configuration.switchPenalty
+                * gapScale
+                * (1 - switchingEvidence)
+            : 0
+
+        return .init(
+            previousSpeaker: previousSpeaker,
+            speaker: speaker,
+            gapSeconds: gap,
+            gapScale: gapScale,
+            switchingEvidence: switchingEvidence,
+            configuredSwitchPenalty: configuration.switchPenalty,
+            transitionCost: transitionCost
+        )
     }
 }

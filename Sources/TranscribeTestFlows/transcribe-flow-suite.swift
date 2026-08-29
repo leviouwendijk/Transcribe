@@ -13,6 +13,7 @@ enum TranscribeFlowSuite: TestFlowRegistry {
         noiseEvidenceFlow,
         speakerReliabilityFlow,
         speakerTemporalCoherenceFlow,
+        retainedInferenceProvenanceFlow,
         parallelAcousticFlow,
         acousticPerformanceFlow,
         sessionAcousticFlow,

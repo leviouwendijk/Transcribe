@@ -134,6 +134,7 @@ private extension SpeakerObservationBuilder {
         let raw = featureVector(
             group,
             sampleRate: sampleRate,
+            view: .raw,
             viewWeight: 1
         )
         let enhancedGroup = group.compactMap {
@@ -144,11 +145,13 @@ private extension SpeakerObservationBuilder {
             : featureVector(
                 enhancedGroup,
                 sampleRate: sampleRate,
+                view: .enhanced,
                 viewWeight: configuration.featureWeights.enhancedView
             )
 
         var values = raw.values
         var weights = raw.weights
+        var coordinates = raw.coordinates
 
         if let enhanced {
             values.append(
@@ -156,6 +159,9 @@ private extension SpeakerObservationBuilder {
             )
             weights.append(
                 contentsOf: enhanced.weights
+            )
+            coordinates.append(
+                contentsOf: enhanced.coordinates
             )
         }
 
@@ -179,7 +185,8 @@ private extension SpeakerObservationBuilder {
             ),
             features: .init(
                 values,
-                weights: weights
+                weights: weights,
+                coordinates: coordinates
             ),
             qualityScore: mean(
                 group.map { rawObservation in
@@ -199,10 +206,37 @@ private extension SpeakerObservationBuilder {
     func featureVector(
         _ group: [AcousticObservation],
         sampleRate: Int,
+        view: SpeakerFeatureView,
         viewWeight: Double
     ) -> SpeakerFeatureVector {
         var values: [Double] = []
         var weights: [Double] = []
+        var coordinates: [SpeakerFeatureCoordinate] = []
+
+        func append(
+            _ value: Double,
+            family: SpeakerFeatureFamily,
+            weight: Double
+        ) {
+            let effectiveWeight = max(
+                0,
+                weight * viewWeight
+            )
+
+            values.append(
+                value
+            )
+            weights.append(
+                effectiveWeight
+            )
+            coordinates.append(
+                .init(
+                    view: view,
+                    family: family,
+                    weight: effectiveWeight
+                )
+            )
+        }
 
         let mfccCount = group
             .map {
@@ -212,30 +246,26 @@ private extension SpeakerObservationBuilder {
             ?? 0
 
         for coefficient in 0..<mfccCount {
-            values.append(
+            append(
                 mean(
                     group.map {
                         $0.spectral.mfcc[coefficient]
                     }
-                )
-            )
-            weights.append(
-                configuration.featureWeights.mfcc
-                    * viewWeight
+                ),
+                family: .mfcc,
+                weight: configuration.featureWeights.mfcc
             )
         }
 
         for coefficient in 0..<mfccCount {
-            values.append(
+            append(
                 standardDeviation(
                     group.map {
                         $0.spectral.mfcc[coefficient]
                     }
-                )
-            )
-            weights.append(
-                configuration.featureWeights.mfcc
-                    * viewWeight
+                ),
+                family: .mfcc,
+                weight: configuration.featureWeights.mfcc
             )
         }
 
@@ -247,16 +277,14 @@ private extension SpeakerObservationBuilder {
             ?? 0
 
         for band in 0..<melCount {
-            values.append(
+            append(
                 mean(
                     group.map {
                         $0.spectral.logMelEnergies[band]
                     }
-                )
-            )
-            weights.append(
-                configuration.featureWeights.logMel
-                    * viewWeight
+                ),
+                family: .logMel,
+                weight: configuration.featureWeights.logMel
             )
         }
 
@@ -267,26 +295,22 @@ private extension SpeakerObservationBuilder {
             pitches
         )
 
-        values.append(
+        append(
             medianPitch > 0
                 ? log2(
                     medianPitch / 100
                 )
-                : 0
-        )
-        weights.append(
-            configuration.featureWeights.pitch
-                * viewWeight
+                : 0,
+            family: .pitch,
+            weight: configuration.featureWeights.pitch
         )
 
-        values.append(
+        append(
             standardDeviation(
                 pitches
-            ) / 200
-        )
-        weights.append(
-            configuration.featureWeights.pitch
-                * viewWeight
+            ) / 200,
+            family: .pitch,
+            weight: configuration.featureWeights.pitch
         )
 
         let sampleRate = max(
@@ -316,78 +340,67 @@ private extension SpeakerObservationBuilder {
                 }
             ),
         ] {
-            values.append(
-                value
-            )
-            weights.append(
-                configuration.featureWeights.spectral
-                    * viewWeight
+            append(
+                value,
+                family: .spectral,
+                weight: configuration.featureWeights.spectral
             )
         }
 
-        values.append(
+        append(
             mean(
                 group.map {
                     $0.signal.rms
                 }
-            )
-        )
-        weights.append(
-            configuration.featureWeights.dynamics
-                * viewWeight
+            ),
+            family: .dynamics,
+            weight: configuration.featureWeights.dynamics
         )
 
-        values.append(
+        append(
             mean(
                 group.map {
                     $0.signal.zeroCrossingRate
                 }
-            )
-        )
-        weights.append(
-            configuration.featureWeights.dynamics
-                * viewWeight
+            ),
+            family: .dynamics,
+            weight: configuration.featureWeights.dynamics
         )
 
-        values.append(
+        append(
             mean(
                 group.map {
                     $0.consistency.consistencyScore
                 }
-            )
-        )
-        weights.append(
-            configuration.featureWeights.consistency
-                * viewWeight
+            ),
+            family: .consistency,
+            weight: configuration.featureWeights.consistency
         )
 
-        values.append(
+        append(
             mean(
                 group.map {
                     $0.consistency.transientLikelihood
                 }
-            )
-        )
-        weights.append(
-            configuration.featureWeights.consistency
-                * viewWeight
+            ),
+            family: .consistency,
+            weight: configuration.featureWeights.consistency
         )
 
-        values.append(
+        append(
             mean(
                 group.map {
                     $0.quality.score
                 }
-            )
-        )
-        weights.append(
-            configuration.featureWeights.quality
-                * viewWeight
+            ),
+            family: .quality,
+            weight: configuration.featureWeights.quality
         )
 
         return .init(
             values,
-            weights: weights
+            weights: weights,
+            coordinates: coordinates
         )
     }
 

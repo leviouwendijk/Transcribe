@@ -45,11 +45,14 @@ public struct SpeakerTranscriptAlignment:
     Hashable
 {
     public let assignments: [SpeakerAssignment]
+    public let configuration: SpeakerTranscriptAligner.Configuration?
 
     public init(
-        assignments: [SpeakerAssignment]
+        assignments: [SpeakerAssignment],
+        configuration: SpeakerTranscriptAligner.Configuration? = nil
     ) {
         self.assignments = assignments
+        self.configuration = configuration
     }
 
     public func assignment(
@@ -74,18 +77,60 @@ public struct AttributedTranscriptionSegment:
     Codable,
     Hashable
 {
+    public let segmentIndex: Int
     public let segment: TranscriptionSegment
-    public let speaker: SpeakerID?
-    public let speakerConfidence: Double?
+    public let assignment: SpeakerAssignment?
 
     public init(
+        segmentIndex: Int,
         segment: TranscriptionSegment,
-        speaker: SpeakerID?,
-        speakerConfidence: Double?
+        assignment: SpeakerAssignment?
     ) {
+        self.segmentIndex = segmentIndex
         self.segment = segment
-        self.speaker = speaker
-        self.speakerConfidence = speakerConfidence
+        self.assignment = assignment
+    }
+
+    public var speaker: SpeakerID? {
+        assignment?.speaker
+    }
+
+    public var speakerConfidence: Double? {
+        assignment?.confidence
+    }
+
+    public var assignmentMethod: SpeakerAssignmentMethod? {
+        assignment?.method
+    }
+
+    public var speakerSegmentIndices: [Int] {
+        assignment?.speakerSegmentIndices
+            ?? []
+    }
+}
+
+public struct AttributedTranscription:
+    Sendable,
+    Codable,
+    Hashable
+{
+    public let localeIdentifier: String?
+    public let segments: [AttributedTranscriptionSegment]
+
+    public init(
+        localeIdentifier: String? = nil,
+        segments: [AttributedTranscriptionSegment]
+    ) {
+        self.localeIdentifier = localeIdentifier
+        self.segments = segments
+    }
+
+    public var text: String {
+        segments
+            .map {
+                $0.segment.text
+            }
+            .joined()
     }
 }
 
@@ -108,25 +153,31 @@ public struct SpeechAnalysisResult:
         self.alignment = alignment
     }
 
-    public var attributedSegments: [AttributedTranscriptionSegment] {
+    public var attributedTranscription: AttributedTranscription? {
         guard let transcription else {
-            return []
+            return nil
         }
 
-        return transcription.segments.enumerated().map {
-            index,
-            segment in
+        return .init(
+            localeIdentifier: transcription.localeIdentifier,
+            segments: transcription.segments.enumerated().map {
+                index,
+                segment in
 
-            let assignment = alignment?.assignment(
-                forSegmentAt: index
-            )
+                .init(
+                    segmentIndex: index,
+                    segment: segment,
+                    assignment: alignment?.assignment(
+                        forSegmentAt: index
+                    )
+                )
+            }
+        )
+    }
 
-            return .init(
-                segment: segment,
-                speaker: assignment?.speaker,
-                speakerConfidence: assignment?.confidence
-            )
-        }
+    public var attributedSegments: [AttributedTranscriptionSegment] {
+        attributedTranscription?.segments
+            ?? []
     }
 }
 
@@ -215,7 +266,8 @@ public struct SpeakerTranscriptAligner: Sendable {
         }
 
         return .init(
-            assignments: assignments
+            assignments: assignments,
+            configuration: configuration
         )
     }
 }

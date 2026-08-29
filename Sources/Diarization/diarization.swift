@@ -37,16 +37,21 @@ public struct SpeakerFeatureVector:
 {
     public let values: [Double]
     public let weights: [Double]
+    public let coordinates: [SpeakerFeatureCoordinate]
 
     public init(
         _ values: [Double],
-        weights: [Double]? = nil
+        weights: [Double]? = nil,
+        coordinates: [SpeakerFeatureCoordinate] = []
     ) {
         self.values = values
         self.weights = weights ?? Array(
             repeating: 1,
             count: values.count
         )
+        self.coordinates = coordinates.count == values.count
+            ? coordinates
+            : []
     }
 }
 
@@ -117,6 +122,7 @@ public struct DiarizationResult:
     public let profiles: [SpeakerProfile]
     public let observations: [SpeakerObservation]
     public let assignments: [SpeakerObservationAssignment]
+    public let method: DiarizationMethod?
     public let acoustic: AcousticAnalysis?
     public let enhancedAcoustic: AcousticAnalysis?
     public let noiseProfile: AcousticNoiseProfile?
@@ -128,6 +134,7 @@ public struct DiarizationResult:
         profiles: [SpeakerProfile] = [],
         observations: [SpeakerObservation] = [],
         assignments: [SpeakerObservationAssignment] = [],
+        method: DiarizationMethod? = nil,
         acoustic: AcousticAnalysis? = nil,
         enhancedAcoustic: AcousticAnalysis? = nil,
         noiseProfile: AcousticNoiseProfile? = nil,
@@ -138,6 +145,7 @@ public struct DiarizationResult:
         self.profiles = profiles
         self.observations = observations
         self.assignments = assignments
+        self.method = method
         self.acoustic = acoustic
         self.enhancedAcoustic = enhancedAcoustic
         self.noiseProfile = noiseProfile
