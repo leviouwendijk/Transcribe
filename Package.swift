@@ -53,11 +53,19 @@ let package = Package(
     ],
     dependencies: [
         .package(
+            url: "https://github.com/leviouwendijk/Arguments.git",
+            branch: "master"
+        ),
+        .package(
             url: "https://github.com/leviouwendijk/Media.git",
             branch: "master"
         ),
         .package(
             url: "https://github.com/leviouwendijk/Schema.git",
+            branch: "master"
+        ),
+        .package(
+            url: "https://github.com/leviouwendijk/Terminal.git",
             branch: "master"
         ),
         .package(
@@ -137,6 +145,15 @@ let package = Package(
                 "TranscribeApple",
                 "Diarization",
                 "SpeechAnalysis",
+                "SpeechAnalysisContext",
+                .product(
+                    name: "Arguments",
+                    package: "Arguments"
+                ),
+                .product(
+                    name: "Terminal",
+                    package: "Terminal"
+                ),
             ]
         ),
         .executableTarget(

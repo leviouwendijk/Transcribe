@@ -1,122 +1,41 @@
+import Arguments
 import Diarization
 import Foundation
 import SpeechAnalysis
 import TranscribeApple
 
 @main
-enum TranscribeCLI {
-    static func main() async throws {
-        let arguments = CommandLine.arguments
+enum TranscribeCLI: ArgumentCommand {
+    static let name = "transcribe"
+    static let defaultChild = Analyze.self
 
-        guard arguments.count >= 2 else {
-            print(
-                "usage: transcribe <audio-file> [locale] [speech|dictation] [speaker-count] [trace-output.csv]"
-            )
-            return
-        }
+    static let children: [ArgumentCommandType] = [
+        Analyze.self,
+    ]
 
-        let path = NSString(
-            string: arguments[1]
-        ).expandingTildeInPath
-
-        let localeIdentifier = arguments.count >= 3
-            ? arguments[2]
-            : "nl-NL"
-
-        let model: AppleTranscriptionModel
-
-        if arguments.count >= 4 {
-            guard let requested = AppleTranscriptionModel(
-                rawValue: arguments[3]
-            ) else {
-                print(
-                    "model must be speech or dictation"
-                )
-                return
-            }
-
-            model = requested
-        } else {
-            model = .speech
-        }
-
-        let expectedSpeakerCount: Int?
-
-        if arguments.count >= 5 {
-            guard let requested = Int(
-                arguments[4]
-            ),
-                  requested > 0
-            else {
-                print(
-                    "speaker-count must be a positive integer"
-                )
-                return
-            }
-
-            expectedSpeakerCount = requested
-        } else {
-            expectedSpeakerCount = nil
-        }
-
-        let result = try await AppleSpeechAnalysisRunner().analyze(
-            file: URL(
-                fileURLWithPath: path
-            ),
-            localeIdentifier: localeIdentifier,
-            model: model,
-            diarizationConfiguration: .init(
-                expectedSpeakerCount: expectedSpeakerCount
-            )
+    static func main() async {
+        await ArgumentProgram.main(
+            command: Self.self
         )
+    }
 
-        renderDiagnostics(
-            result.analysis
-        )
+    enum Analyze: ParsedArgumentCommand {
+        typealias Options = TranscribeCommandOptions
 
-        if arguments.count >= 6,
-           let diarization = result.analysis.diarization {
-            let tracePath = NSString(
-                string: arguments[5]
-            ).expandingTildeInPath
+        static let name = "analyze"
 
-            try diarization
-                .acousticTraceCSV()
-                .write(
-                    to: URL(
-                        fileURLWithPath: tracePath
-                    ),
-                    atomically: true,
-                    encoding: .utf8
-                )
-
-            print(
-                "acoustic trace: \(tracePath)"
+        static func run(
+            _ options: TranscribeCommandOptions,
+            invocation: ParsedInvocation
+        ) async throws {
+            try await TranscribeCommandRunner.run(
+                options
             )
         }
-
-        renderTiming(
-            result.timing
-        )
-
-        print("")
-        print("=== attributed transcript ===")
-
-        for attributed in result.analysis.attributedSegments {
-            render(
-                attributed
-            )
-        }
-
-        print("")
-        print("=== raw transcript ===")
-        print(
-            result.appleTranscription.transcription.text
-        )
     }
 }
 
-private extension TranscribeCLI {
+extension TranscribeCLI {
     static func renderTiming(
         _ timing: AppleSpeechAnalysisTiming
     ) {
