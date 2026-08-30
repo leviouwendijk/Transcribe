@@ -79,6 +79,113 @@ enum TranscribeTerminalRenderer {
         )
     }
 
+    static func renderSpeakerEmbeddingReplay(
+        baseline: DiarizationResult,
+        replay: DiarizationResult
+    ) {
+        let comparison = Diarizer().compare(
+            baseline,
+            to: replay
+        )
+        let method = replay.method
+        let clustering = method?.clustering
+
+        var items: [TerminalDetailItem] = [
+            .field(
+                label: "representation",
+                value: method?.clusteringRepresentation.rawValue
+                    ?? "unknown"
+            ),
+            .field(
+                label: "distance metric",
+                value: clustering?.distanceMetric.rawValue
+                    ?? "unknown"
+            ),
+            .field(
+                label: "clustering changes",
+                value: String(
+                    comparison.clusteringChanges.count
+                )
+            ),
+            .field(
+                label: "resolved changes",
+                value: String(
+                    comparison.resolvedChanges.count
+                )
+            ),
+            .field(
+                label: "speakers",
+                value: String(
+                    comparison.speakerCount
+                )
+            ),
+            .field(
+                label: "segments",
+                value: String(
+                    comparison.segmentCount
+                )
+            ),
+            .field(
+                label: "reliability-weighted cost",
+                value: optionalDescription(
+                    comparison.reliabilityWeightedCost
+                )
+            ),
+        ]
+
+        let profiles = replay.profiles.compactMap { profile -> String? in
+            guard let embedding = profile.embeddingProfile else {
+                return nil
+            }
+
+            return String(
+                format: "%@ observations %d, duration %.2fs, embedding evidence %d, cosine dispersion %.4f",
+                profile.speaker.rawValue,
+                profile.observationCount,
+                profile.observedDurationSeconds,
+                embedding.evidenceCount,
+                embedding.dispersion
+            )
+        }
+
+        if !profiles.isEmpty {
+            items.append(
+                .list(
+                    label: "embedding profiles",
+                    values: profiles
+                )
+            )
+        }
+
+        if !comparison.clusteringChanges.isEmpty {
+            items.append(
+                .list(
+                    label: "clustering changes",
+                    values: comparison.clusteringChanges.map(
+                        clusteringDescription
+                    )
+                )
+            )
+        }
+
+        if !comparison.resolvedChanges.isEmpty {
+            items.append(
+                .list(
+                    label: "resolved changes",
+                    values: comparison.resolvedChanges.map(
+                        resolvedDescription
+                    )
+                )
+            )
+        }
+
+        render(
+            title: "Speaker embedding replay",
+            section: "acoustic vs embedding",
+            items: items
+        )
+    }
+
     static func renderExports(
         trace: URL?,
         context: URL?,
@@ -293,6 +400,20 @@ private extension TranscribeTerminalRenderer {
             weights.consistency,
             weights.quality,
             weights.enhancedView
+        )
+    }
+
+    static func clusteringDescription(
+        _ change: SpeakerDiarizationAssignmentChange
+    ) -> String {
+        String(
+            format: "%.2f...%.2f %@ -> %@, confidence %.3f -> %.3f",
+            change.range.start,
+            change.range.end,
+            change.baseline.clusteringSpeaker.rawValue,
+            change.replay.clusteringSpeaker.rawValue,
+            change.baseline.clusteringConfidence,
+            change.replay.clusteringConfidence
         )
     }
 

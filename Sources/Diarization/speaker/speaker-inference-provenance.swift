@@ -118,12 +118,27 @@ public struct SpeakerClusteringEvaluation:
 {
     public let observationCount: Int
     public let selectedSpeakerCount: Int
-    public let reliabilityWeightedSquaredError: Double
+    public let distanceMetric: SpeakerClusteringDistanceMetric
+    public let reliabilityWeightedCost: Double
 
     public init(
         observationCount: Int,
         selectedSpeakerCount: Int,
         reliabilityWeightedSquaredError: Double
+    ) {
+        self.init(
+            observationCount: observationCount,
+            selectedSpeakerCount: selectedSpeakerCount,
+            distanceMetric: .standardizedWeightedSquaredEuclidean,
+            reliabilityWeightedCost: reliabilityWeightedSquaredError
+        )
+    }
+
+    public init(
+        observationCount: Int,
+        selectedSpeakerCount: Int,
+        distanceMetric: SpeakerClusteringDistanceMetric,
+        reliabilityWeightedCost: Double
     ) {
         self.observationCount = max(
             0,
@@ -133,10 +148,19 @@ public struct SpeakerClusteringEvaluation:
             0,
             selectedSpeakerCount
         )
-        self.reliabilityWeightedSquaredError = max(
+        self.distanceMetric = distanceMetric
+        self.reliabilityWeightedCost = max(
             0,
-            reliabilityWeightedSquaredError
+            reliabilityWeightedCost
         )
+    }
+
+    /// Compatibility projection for the original acoustic clustering metric.
+    /// Non-squared metrics intentionally do not masquerade as SSE.
+    public var reliabilityWeightedSquaredError: Double {
+        distanceMetric == .standardizedWeightedSquaredEuclidean
+            ? reliabilityWeightedCost
+            : 0
     }
 }
 

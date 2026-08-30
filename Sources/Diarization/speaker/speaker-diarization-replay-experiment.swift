@@ -11,7 +11,9 @@ public struct SpeakerClusteringNormalizedEvaluation:
     public init?(
         method: DiarizationMethod
     ) {
-        guard let clustering = method.clustering else {
+        guard let clustering = method.clustering,
+              clustering.distanceMetric
+                == .standardizedWeightedSquaredEuclidean else {
             return nil
         }
 

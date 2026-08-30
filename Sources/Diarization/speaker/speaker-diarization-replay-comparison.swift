@@ -28,24 +28,42 @@ public struct SpeakerDiarizationReplayComparison:
     Codable,
     Hashable
 {
-    public let acousticChanges: [SpeakerDiarizationAssignmentChange]
+    public let clusteringChanges: [SpeakerDiarizationAssignmentChange]
     public let resolvedChanges: [SpeakerDiarizationAssignmentChange]
     public let speakerCount: Int
     public let segmentCount: Int
-    public let reliabilityWeightedSquaredError: Double?
+    public let distanceMetric: SpeakerClusteringDistanceMetric?
+    public let reliabilityWeightedCost: Double?
 
     public init(
-        acousticChanges: [SpeakerDiarizationAssignmentChange],
+        clusteringChanges: [SpeakerDiarizationAssignmentChange],
         resolvedChanges: [SpeakerDiarizationAssignmentChange],
         speakerCount: Int,
         segmentCount: Int,
-        reliabilityWeightedSquaredError: Double?
+        distanceMetric: SpeakerClusteringDistanceMetric?,
+        reliabilityWeightedCost: Double?
     ) {
-        self.acousticChanges = acousticChanges
+        self.clusteringChanges = clusteringChanges
         self.resolvedChanges = resolvedChanges
         self.speakerCount = speakerCount
         self.segmentCount = segmentCount
-        self.reliabilityWeightedSquaredError = reliabilityWeightedSquaredError
+        self.distanceMetric = distanceMetric
+        self.reliabilityWeightedCost = reliabilityWeightedCost
+    }
+
+    /// Compatibility name for the acoustic replay/calibration surface.
+    public var acousticChanges: [SpeakerDiarizationAssignmentChange] {
+        clusteringChanges
+    }
+
+    /// Compatibility projection for acoustic squared-Euclidean clustering.
+    public var reliabilityWeightedSquaredError: Double? {
+        guard distanceMetric
+            == .standardizedWeightedSquaredEuclidean else {
+            return nil
+        }
+
+        return reliabilityWeightedCost
     }
 }
 
@@ -104,7 +122,7 @@ public extension Diarizer {
             }
         )
 
-        var acousticChanges: [SpeakerDiarizationAssignmentChange] = []
+        var clusteringChanges: [SpeakerDiarizationAssignmentChange] = []
         var resolvedChanges: [SpeakerDiarizationAssignmentChange] = []
 
         for baselineAssignment in baseline.assignments {
@@ -126,9 +144,9 @@ public extension Diarizer {
                 replay: replayAssignment
             )
 
-            if baselineAssignment.acousticSpeaker
-                != replayAssignment.acousticSpeaker {
-                acousticChanges.append(
+            if baselineAssignment.clusteringSpeaker
+                != replayAssignment.clusteringSpeaker {
+                clusteringChanges.append(
                     change
                 )
             }
@@ -142,13 +160,16 @@ public extension Diarizer {
         }
 
         return .init(
-            acousticChanges: acousticChanges,
+            clusteringChanges: clusteringChanges,
             resolvedChanges: resolvedChanges,
             speakerCount: replay.profiles.count,
             segmentCount: replay.segments.count,
-            reliabilityWeightedSquaredError: replay.method?
+            distanceMetric: replay.method?
                 .clustering?
-                .reliabilityWeightedSquaredError
+                .distanceMetric,
+            reliabilityWeightedCost: replay.method?
+                .clustering?
+                .reliabilityWeightedCost
         )
     }
 
@@ -177,3 +198,4 @@ public extension Diarizer {
         }
     }
 }
+

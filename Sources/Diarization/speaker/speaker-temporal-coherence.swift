@@ -26,9 +26,30 @@ public struct SpeakerAssignmentCandidate:
     Hashable
 {
     public let speaker: SpeakerID
-    public let acousticCost: Double
-    public let squaredDistance: Double
+    public let clusteringRepresentation: SpeakerClusteringRepresentation
+    public let clusteringCost: Double
+    public let distance: Double
     public let featureContributions: [SpeakerFeatureContribution]
+
+    public init(
+        speaker: SpeakerID,
+        clusteringRepresentation: SpeakerClusteringRepresentation,
+        clusteringCost: Double,
+        distance: Double = 0,
+        featureContributions: [SpeakerFeatureContribution] = []
+    ) {
+        self.speaker = speaker
+        self.clusteringRepresentation = clusteringRepresentation
+        self.clusteringCost = max(
+            0,
+            clusteringCost
+        )
+        self.distance = max(
+            0,
+            distance
+        )
+        self.featureContributions = featureContributions
+    }
 
     public init(
         speaker: SpeakerID,
@@ -36,16 +57,21 @@ public struct SpeakerAssignmentCandidate:
         squaredDistance: Double = 0,
         featureContributions: [SpeakerFeatureContribution] = []
     ) {
-        self.speaker = speaker
-        self.acousticCost = max(
-            0,
-            acousticCost
+        self.init(
+            speaker: speaker,
+            clusteringRepresentation: .acoustic,
+            clusteringCost: acousticCost,
+            distance: squaredDistance,
+            featureContributions: featureContributions
         )
-        self.squaredDistance = max(
-            0,
-            squaredDistance
-        )
-        self.featureContributions = featureContributions
+    }
+
+    public var acousticCost: Double {
+        clusteringCost
+    }
+
+    public var squaredDistance: Double {
+        distance
     }
 }
 
@@ -55,32 +81,35 @@ public struct SpeakerObservationAssignment:
     Hashable
 {
     public let observationID: SpeakerObservationID
-    public let acousticSpeaker: SpeakerID
+    public let clusteringRepresentation: SpeakerClusteringRepresentation
+    public let clusteringSpeaker: SpeakerID
     public let resolvedSpeaker: SpeakerID
-    public let acousticConfidence: Double
+    public let clusteringConfidence: Double
     public let reliabilityEvaluation: SpeakerEvidenceReliabilityEvaluation
     public let candidates: [SpeakerAssignmentCandidate]
     public let temporalTransition: SpeakerTransitionEvaluation?
 
     public init(
         observationID: SpeakerObservationID,
-        acousticSpeaker: SpeakerID,
+        clusteringRepresentation: SpeakerClusteringRepresentation,
+        clusteringSpeaker: SpeakerID,
         resolvedSpeaker: SpeakerID? = nil,
-        acousticConfidence: Double,
+        clusteringConfidence: Double,
         reliability: Double,
         reliabilityEvaluation: SpeakerEvidenceReliabilityEvaluation? = nil,
         candidates: [SpeakerAssignmentCandidate],
         temporalTransition: SpeakerTransitionEvaluation? = nil
     ) {
         self.observationID = observationID
-        self.acousticSpeaker = acousticSpeaker
+        self.clusteringRepresentation = clusteringRepresentation
+        self.clusteringSpeaker = clusteringSpeaker
         self.resolvedSpeaker = resolvedSpeaker
-            ?? acousticSpeaker
-        self.acousticConfidence = min(
+            ?? clusteringSpeaker
+        self.clusteringConfidence = min(
             1,
             max(
                 0,
-                acousticConfidence
+                clusteringConfidence
             )
         )
         self.reliabilityEvaluation = reliabilityEvaluation
@@ -94,23 +123,58 @@ public struct SpeakerObservationAssignment:
         self.temporalTransition = temporalTransition
     }
 
+    public init(
+        observationID: SpeakerObservationID,
+        acousticSpeaker: SpeakerID,
+        resolvedSpeaker: SpeakerID? = nil,
+        acousticConfidence: Double,
+        reliability: Double,
+        reliabilityEvaluation: SpeakerEvidenceReliabilityEvaluation? = nil,
+        candidates: [SpeakerAssignmentCandidate],
+        temporalTransition: SpeakerTransitionEvaluation? = nil
+    ) {
+        self.init(
+            observationID: observationID,
+            clusteringRepresentation: .acoustic,
+            clusteringSpeaker: acousticSpeaker,
+            resolvedSpeaker: resolvedSpeaker,
+            clusteringConfidence: acousticConfidence,
+            reliability: reliability,
+            reliabilityEvaluation: reliabilityEvaluation,
+            candidates: candidates,
+            temporalTransition: temporalTransition
+        )
+    }
+
+    public var acousticSpeaker: SpeakerID {
+        clusteringSpeaker
+    }
+
+    public var acousticConfidence: Double {
+        clusteringConfidence
+    }
+
     public var reliability: Double {
         reliabilityEvaluation.reliability
     }
 
     public var changedByContinuity: Bool {
-        acousticSpeaker != resolvedSpeaker
+        clusteringSpeaker != resolvedSpeaker
+    }
+
+    public var clusteringEvidenceStrength: Double {
+        clusteringConfidence
+            * reliability
     }
 
     public var acousticEvidenceStrength: Double {
-        acousticConfidence
-            * reliability
+        clusteringEvidenceStrength
     }
 
     public var resolvedConfidence: Double? {
         changedByContinuity
             ? nil
-            : acousticEvidenceStrength
+            : clusteringEvidenceStrength
     }
 }
 
@@ -276,9 +340,10 @@ public struct SpeakerTemporalCoherence: Sendable {
 
             return .init(
                 observationID: assignment.observationID,
-                acousticSpeaker: assignment.acousticSpeaker,
+                clusteringRepresentation: assignment.clusteringRepresentation,
+                clusteringSpeaker: assignment.clusteringSpeaker,
                 resolvedSpeaker: resolvedSpeaker,
-                acousticConfidence: assignment.acousticConfidence,
+                clusteringConfidence: assignment.clusteringConfidence,
                 reliability: assignment.reliability,
                 reliabilityEvaluation: assignment.reliabilityEvaluation,
                 candidates: assignment.candidates,
@@ -293,11 +358,11 @@ private extension SpeakerTemporalCoherence {
         assignment: SpeakerObservationAssignment,
         speaker: SpeakerID
     ) -> Double {
-        let acousticCost = assignment.candidates.first {
+        let clusteringCost = assignment.candidates.first {
             $0.speaker == speaker
-        }?.acousticCost ?? 1_000_000
+        }?.clusteringCost ?? 1_000_000
 
-        return acousticCost
+        return clusteringCost
             * assignment.reliability
     }
 
@@ -326,8 +391,8 @@ private extension SpeakerTemporalCoherence {
         }
 
         let switchingEvidence = previousSpeaker != speaker
-            && assignment.acousticSpeaker == speaker
-            ? assignment.acousticEvidenceStrength
+            && assignment.clusteringSpeaker == speaker
+            ? assignment.clusteringEvidenceStrength
             : 0
 
         let transitionCost = previousSpeaker != speaker

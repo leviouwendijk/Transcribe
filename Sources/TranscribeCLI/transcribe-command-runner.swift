@@ -38,6 +38,17 @@ enum TranscribeCommandRunner {
                 result.analysis.diarization,
                 requestedProvider: requestedProvider.rawValue
             )
+
+            if let baseline = result.analysis.diarization,
+               let embeddingReplay = Diarizer().replay(
+                baseline,
+                clusteringRepresentation: .embedding
+               ) {
+                TranscribeTerminalRenderer.renderSpeakerEmbeddingReplay(
+                    baseline: baseline,
+                    replay: embeddingReplay
+                )
+            }
         }
 
         var traceOutput: URL?

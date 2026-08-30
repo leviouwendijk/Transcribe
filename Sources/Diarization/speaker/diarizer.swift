@@ -205,13 +205,13 @@ public struct Diarizer: Sendable {
     }
 }
 
-private struct ClusterResult {
+struct ClusterResult {
     let assignments: [Int]
     let centroids: [[Double]]
     let squaredError: Double
 }
 
-private extension Diarizer {
+extension Diarizer {
     func interpretSpeakerObservations(
         _ observations: [SpeakerObservation],
         analysis: AcousticAnalysis,
