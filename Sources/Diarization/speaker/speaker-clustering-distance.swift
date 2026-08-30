@@ -8,6 +8,7 @@ public enum SpeakerClusteringDistanceMetric:
 {
     case standardizedWeightedSquaredEuclidean = "standardized-weighted-squared-euclidean"
     case cosine
+    case fusedNormalizedCandidateCost = "fused-normalized-candidate-cost"
 }
 
 func speakerClusteringDistance(
@@ -16,6 +17,11 @@ func speakerClusteringDistance(
     metric: SpeakerClusteringDistanceMetric
 ) -> Double {
     switch metric {
+    case .fusedNormalizedCandidateCost:
+        preconditionFailure(
+            "Fused normalized candidate cost is defined over retained clustering candidates, not raw vectors."
+        )
+
     case .standardizedWeightedSquaredEuclidean:
         let count = min(
             lhs.count,

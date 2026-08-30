@@ -22,6 +22,7 @@ enum TranscribeFlowSuite: TestFlowRegistry {
         fluidAudioEmbeddingProviderFlow,
         speakerEmbeddingRuntimeFlow,
         speakerEmbeddingClusteringFlow,
+        speakerHybridClusteringFlow,
         transcribeCLIObservabilityFlow,
         parallelAcousticFlow,
         acousticPerformanceFlow,

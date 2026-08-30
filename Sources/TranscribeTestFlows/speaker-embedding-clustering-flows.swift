@@ -112,7 +112,7 @@ extension TranscribeFlowSuite {
     }
 }
 
-private func embeddingReplayFixture(
+func embeddingReplayFixture(
     omittingLastEmbedding: Bool = false
 ) -> DiarizationResult {
     let embeddings: [[Float]] = [

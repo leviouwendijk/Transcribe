@@ -164,6 +164,35 @@ public struct SpeakerClusteringEvaluation:
     }
 }
 
+public struct SpeakerHybridClusteringWeights:
+    Sendable,
+    Codable,
+    Hashable
+{
+    public let acoustic: Double
+    public let embedding: Double
+
+    public init(
+        acoustic: Double,
+        embedding: Double
+    ) {
+        precondition(acoustic.isFinite)
+        precondition(embedding.isFinite)
+        precondition(acoustic >= 0)
+        precondition(embedding >= 0)
+
+        let total = acoustic
+            + embedding
+
+        precondition(total > 0)
+
+        self.acoustic = acoustic
+            / total
+        self.embedding = embedding
+            / total
+    }
+}
+
 public enum SpeakerClusteringRepresentation:
     String,
     Sendable,
@@ -186,6 +215,10 @@ public struct DiarizationMethod:
     /// Identity representation actually consumed by clustering.
     public let clusteringRepresentation: SpeakerClusteringRepresentation
 
+    /// Relative authority of acoustic and embedding evidence when the
+    /// clustering representation is hybrid.
+    public let hybridWeights: SpeakerHybridClusteringWeights?
+
     /// Weighting semantics used to turn configured family weights into coordinate weights.
     public let featureWeighting: SpeakerFeatureWeighting
 
@@ -201,6 +234,7 @@ public struct DiarizationMethod:
     public init(
         configuration: DiarizationConfiguration,
         clusteringRepresentation: SpeakerClusteringRepresentation = .acoustic,
+        hybridWeights: SpeakerHybridClusteringWeights? = nil,
         featureWeighting: SpeakerFeatureWeighting = .perCoordinate,
         featureSpace: [SpeakerFeatureCoordinate] = [],
         standardization: SpeakerFeatureStandardization = .empty,
@@ -208,6 +242,7 @@ public struct DiarizationMethod:
     ) {
         self.configuration = configuration
         self.clusteringRepresentation = clusteringRepresentation
+        self.hybridWeights = hybridWeights
         self.featureWeighting = featureWeighting
         self.featureSpace = featureSpace
         self.standardization = standardization

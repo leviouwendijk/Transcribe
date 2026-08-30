@@ -8,13 +8,13 @@ private struct SpeakerEmbeddingClusterResult {
 
 public extension Diarizer {
     /// Reinterprets retained speaker observations using the requested identity
-    /// representation. Embedding replay requires one compatible embedding for
-    /// every retained speaker observation. Hybrid inference remains
-    /// intentionally unsupported until acoustic and embedding calibration has
-    /// been established independently.
+    /// representation. Embedding and hybrid replay require one compatible
+    /// embedding for every retained speaker observation. Hybrid replay also
+    /// requires explicit acoustic/embedding authority weights.
     func replay(
         _ source: DiarizationResult,
-        clusteringRepresentation: SpeakerClusteringRepresentation
+        clusteringRepresentation: SpeakerClusteringRepresentation,
+        hybridWeights: SpeakerHybridClusteringWeights? = nil
     ) -> DiarizationResult? {
         switch clusteringRepresentation {
         case .acoustic:
@@ -28,12 +28,19 @@ public extension Diarizer {
             )
 
         case .hybrid:
-            return nil
+            guard let hybridWeights else {
+                return nil
+            }
+
+            return hybridReplay(
+                source,
+                weights: hybridWeights
+            )
         }
     }
 }
 
-private extension Diarizer {
+extension Diarizer {
     func embeddingReplay(
         _ source: DiarizationResult
     ) -> DiarizationResult? {
@@ -196,7 +203,9 @@ private extension Diarizer {
             enhancement: source.enhancement
         )
     }
+}
 
+private extension Diarizer {
     func automaticEmbeddingClustering(
         vectors: [[Double]],
         reliabilities: [Double],

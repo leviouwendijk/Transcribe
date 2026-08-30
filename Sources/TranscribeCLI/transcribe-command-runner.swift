@@ -39,14 +39,24 @@ enum TranscribeCommandRunner {
                 requestedProvider: requestedProvider.rawValue
             )
 
-            if let baseline = result.analysis.diarization,
-               let embeddingReplay = Diarizer().replay(
-                baseline,
-                clusteringRepresentation: .embedding
-               ) {
-                TranscribeTerminalRenderer.renderSpeakerEmbeddingReplay(
-                    baseline: baseline,
-                    replay: embeddingReplay
+            if let baseline = result.analysis.diarization {
+                let diarizer = Diarizer()
+
+                if let embeddingReplay = diarizer.replay(
+                    baseline,
+                    clusteringRepresentation: .embedding
+                ) {
+                    TranscribeTerminalRenderer.renderSpeakerEmbeddingReplay(
+                        baseline: baseline,
+                        replay: embeddingReplay
+                    )
+                }
+
+                TranscribeTerminalRenderer.renderSpeakerHybridReplay(
+                    diarizer.replayHybridExperiment(
+                        baseline,
+                        candidates: speakerHybridCandidates()
+                    )
                 )
             }
         }
@@ -124,6 +134,46 @@ enum TranscribeCommandRunner {
 }
 
 private extension TranscribeCommandRunner {
+    static func speakerHybridCandidates() -> [SpeakerHybridCandidate] {
+        [
+            .init(
+                name: "acoustic 100 / embedding 0",
+                weights: .init(
+                    acoustic: 1,
+                    embedding: 0
+                )
+            ),
+            .init(
+                name: "acoustic 50 / embedding 50",
+                weights: .init(
+                    acoustic: 0.50,
+                    embedding: 0.50
+                )
+            ),
+            .init(
+                name: "acoustic 35 / embedding 65",
+                weights: .init(
+                    acoustic: 0.35,
+                    embedding: 0.65
+                )
+            ),
+            .init(
+                name: "acoustic 20 / embedding 80",
+                weights: .init(
+                    acoustic: 0.20,
+                    embedding: 0.80
+                )
+            ),
+            .init(
+                name: "acoustic 0 / embedding 100",
+                weights: .init(
+                    acoustic: 0,
+                    embedding: 1
+                )
+            ),
+        ]
+    }
+
     static func speakerCalibrationCandidates(
         _ baseline: SpeakerFeatureWeights
     ) -> [SpeakerDiarizationReplayCandidate] {

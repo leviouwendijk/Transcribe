@@ -4,6 +4,8 @@ import SpeechAnalysisContext
 import Terminal
 
 enum TranscribeTerminalRenderer {
+    static let speakerChangeCompactionGapSeconds = 0.35
+
     static func renderSpeakerEmbeddings(
         _ diarization: DiarizationResult?,
         requestedProvider: String
@@ -157,23 +159,30 @@ enum TranscribeTerminalRenderer {
             )
         }
 
-        if !comparison.clusteringChanges.isEmpty {
+        let clusteringSpans = comparison.compactedClusteringChanges(
+            maximumGapSeconds: speakerChangeCompactionGapSeconds
+        )
+        let resolvedSpans = comparison.compactedResolvedChanges(
+            maximumGapSeconds: speakerChangeCompactionGapSeconds
+        )
+
+        if !clusteringSpans.isEmpty {
             items.append(
                 .list(
-                    label: "clustering changes",
-                    values: comparison.clusteringChanges.map(
-                        clusteringDescription
+                    label: "clustering change spans",
+                    values: clusteringSpans.map(
+                        changeSpanDescription
                     )
                 )
             )
         }
 
-        if !comparison.resolvedChanges.isEmpty {
+        if !resolvedSpans.isEmpty {
             items.append(
                 .list(
-                    label: "resolved changes",
-                    values: comparison.resolvedChanges.map(
-                        resolvedDescription
+                    label: "resolved change spans",
+                    values: resolvedSpans.map(
+                        changeSpanDescription
                     )
                 )
             )
@@ -183,6 +192,87 @@ enum TranscribeTerminalRenderer {
             title: "Speaker embedding replay",
             section: "acoustic vs embedding",
             items: items
+        )
+    }
+
+    static func renderSpeakerHybridReplay(
+        _ results: [SpeakerHybridReplayResult]
+    ) {
+        guard !results.isEmpty else {
+            return
+        }
+
+        render(
+            title: "Speaker hybrid replay",
+            sections: results.map { experiment in
+                let comparison = experiment.comparison
+                let weights = experiment.candidate.weights
+                let spans = comparison.compactedResolvedChanges(
+                    maximumGapSeconds: speakerChangeCompactionGapSeconds
+                )
+                var items: [TerminalDetailItem] = [
+                    .field(
+                        label: "weights",
+                        value: String(
+                            format: "acoustic %.2f / embedding %.2f",
+                            weights.acoustic,
+                            weights.embedding
+                        )
+                    ),
+                    .field(
+                        label: "clustering changes",
+                        value: String(
+                            comparison.clusteringChanges.count
+                        )
+                    ),
+                    .field(
+                        label: "resolved changes",
+                        value: String(
+                            comparison.resolvedChanges.count
+                        )
+                    ),
+                    .field(
+                        label: "resolved change spans",
+                        value: String(
+                            spans.count
+                        )
+                    ),
+                    .field(
+                        label: "speakers",
+                        value: String(
+                            comparison.speakerCount
+                        )
+                    ),
+                    .field(
+                        label: "segments",
+                        value: String(
+                            comparison.segmentCount
+                        )
+                    ),
+                    .field(
+                        label: "reliability-weighted cost",
+                        value: optionalDescription(
+                            comparison.reliabilityWeightedCost
+                        )
+                    ),
+                ]
+
+                if !spans.isEmpty {
+                    items.append(
+                        .list(
+                            label: "resolved change spans",
+                            values: spans.map(
+                                changeSpanDescription
+                            )
+                        )
+                    )
+                }
+
+                return .init(
+                    title: experiment.candidate.name,
+                    items: items
+                )
+            }
         )
     }
 
@@ -400,6 +490,19 @@ private extension TranscribeTerminalRenderer {
             weights.consistency,
             weights.quality,
             weights.enhancedView
+        )
+    }
+
+    static func changeSpanDescription(
+        _ span: SpeakerAssignmentChangeSpan
+    ) -> String {
+        String(
+            format: "%.2f...%.2f %@ -> %@ (%d observations)",
+            span.range.start,
+            span.range.end,
+            span.baselineSpeaker.rawValue,
+            span.replaySpeaker.rawValue,
+            span.observationCount
         )
     }
 
