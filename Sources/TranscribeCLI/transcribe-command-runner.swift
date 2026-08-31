@@ -137,20 +137,6 @@ private extension TranscribeCommandRunner {
     static func speakerHybridCandidates() -> [SpeakerHybridCandidate] {
         [
             .init(
-                name: "acoustic 100 / embedding 0",
-                weights: .init(
-                    acoustic: 1,
-                    embedding: 0
-                )
-            ),
-            .init(
-                name: "acoustic 50 / embedding 50",
-                weights: .init(
-                    acoustic: 0.50,
-                    embedding: 0.50
-                )
-            ),
-            .init(
                 name: "acoustic 35 / embedding 65",
                 weights: .init(
                     acoustic: 0.35,
@@ -158,17 +144,45 @@ private extension TranscribeCommandRunner {
                 )
             ),
             .init(
+                name: "acoustic 32.5 / embedding 67.5",
+                weights: .init(
+                    acoustic: 0.325,
+                    embedding: 0.675
+                )
+            ),
+            .init(
+                name: "acoustic 30 / embedding 70",
+                weights: .init(
+                    acoustic: 0.30,
+                    embedding: 0.70
+                )
+            ),
+            .init(
+                name: "acoustic 27.5 / embedding 72.5",
+                weights: .init(
+                    acoustic: 0.275,
+                    embedding: 0.725
+                )
+            ),
+            .init(
+                name: "acoustic 25 / embedding 75",
+                weights: .init(
+                    acoustic: 0.25,
+                    embedding: 0.75
+                )
+            ),
+            .init(
+                name: "acoustic 22.5 / embedding 77.5",
+                weights: .init(
+                    acoustic: 0.225,
+                    embedding: 0.775
+                )
+            ),
+            .init(
                 name: "acoustic 20 / embedding 80",
                 weights: .init(
                     acoustic: 0.20,
                     embedding: 0.80
-                )
-            ),
-            .init(
-                name: "acoustic 0 / embedding 100",
-                weights: .init(
-                    acoustic: 0,
-                    embedding: 1
                 )
             ),
         ]
