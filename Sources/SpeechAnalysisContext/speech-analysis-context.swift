@@ -1,7 +1,7 @@
 import Diarization
 import MediaCore
 import Schema
-import SchemaMacros
+import Macros
 import SpeechAnalysis
 import Transcribe
 

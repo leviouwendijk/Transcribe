@@ -1,0 +1,379 @@
+{
+  "failed" : 0,
+  "failed_names" : [
+
+  ],
+  "generated_at" : "2026-09-02T15:51:20Z",
+  "passed" : 31,
+  "results" : [
+    {
+      "display_name" : "transcription-semantics",
+      "duration_seconds" : 0.0009210109710693359,
+      "name" : "transcription-semantics",
+      "status" : "passed",
+      "tags" : [
+        "semantics",
+        "transcription"
+      ]
+    },
+    {
+      "display_name" : "acoustic-observations",
+      "duration_seconds" : 0.023924946784973145,
+      "name" : "acoustic-observations",
+      "status" : "passed",
+      "tags" : [
+        "acoustic",
+        "diarization",
+        "dsp"
+      ]
+    },
+    {
+      "display_name" : "acoustic-activity",
+      "duration_seconds" : 0.03986799716949463,
+      "name" : "acoustic-activity",
+      "status" : "passed",
+      "tags" : [
+        "activity",
+        "diarization",
+        "quality"
+      ]
+    },
+    {
+      "display_name" : "acoustic-traces",
+      "duration_seconds" : 0.0883110761642456,
+      "name" : "acoustic-traces",
+      "status" : "passed",
+      "tags" : [
+        "acoustic",
+        "consistency",
+        "diarization",
+        "trace"
+      ]
+    },
+    {
+      "display_name" : "acoustic-trace-export",
+      "duration_seconds" : 0.1161799430847168,
+      "name" : "acoustic-trace-export",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "export",
+        "trace"
+      ]
+    },
+    {
+      "display_name" : "pitch-inference",
+      "duration_seconds" : 0.10646593570709229,
+      "name" : "pitch-inference",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "pitch",
+        "spectral"
+      ]
+    },
+    {
+      "display_name" : "acoustic-noise-evidence",
+      "duration_seconds" : 0.1959749460220337,
+      "name" : "acoustic-noise-evidence",
+      "status" : "passed",
+      "tags" : [
+        "acoustic",
+        "diarization",
+        "noise",
+        "trace"
+      ]
+    },
+    {
+      "display_name" : "speaker-evidence-reliability",
+      "duration_seconds" : 0.19365501403808594,
+      "name" : "speaker-evidence-reliability",
+      "status" : "passed",
+      "tags" : [
+        "clustering",
+        "diarization",
+        "noise",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "speaker-temporal-coherence",
+      "duration_seconds" : 0.1753530502319336,
+      "name" : "speaker-temporal-coherence",
+      "status" : "passed",
+      "tags" : [
+        "clustering",
+        "diarization",
+        "speaker",
+        "temporal"
+      ]
+    },
+    {
+      "display_name" : "retained-inference-provenance",
+      "duration_seconds" : 0.15957999229431152,
+      "name" : "retained-inference-provenance",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "evidence",
+        "provenance",
+        "speech-analysis"
+      ]
+    },
+    {
+      "display_name" : "speech-analysis-context",
+      "duration_seconds" : 0.008091092109680176,
+      "name" : "speech-analysis-context",
+      "status" : "passed",
+      "tags" : [
+        "context",
+        "llm",
+        "projection",
+        "schema",
+        "speech-analysis"
+      ]
+    },
+    {
+      "display_name" : "speaker-diarization-replay",
+      "duration_seconds" : 0.5950170755386353,
+      "name" : "speaker-diarization-replay",
+      "status" : "passed",
+      "tags" : [
+        "ablation",
+        "clustering",
+        "diarization",
+        "replay",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "speaker-diarization-replay-calibration",
+      "duration_seconds" : 0.19366800785064697,
+      "name" : "speaker-diarization-replay-calibration",
+      "status" : "passed",
+      "tags" : [
+        "calibration",
+        "clustering",
+        "diarization",
+        "replay",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "speaker-embedding-semantics",
+      "duration_seconds" : 0.04279005527496338,
+      "name" : "speaker-embedding-semantics",
+      "status" : "passed",
+      "tags" : [
+        "clustering",
+        "diarization",
+        "embedding",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "speaker-embedding-provider",
+      "duration_seconds" : 0.0041120052337646484,
+      "name" : "speaker-embedding-provider",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "embedding",
+        "provider",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "fluid-audio-embedding-provider",
+      "duration_seconds" : 0.0002340078353881836,
+      "name" : "fluid-audio-embedding-provider",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "embedding",
+        "fluid-audio",
+        "provider",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "speaker-embedding-runtime",
+      "duration_seconds" : 0.018822908401489258,
+      "name" : "speaker-embedding-runtime",
+      "status" : "passed",
+      "tags" : [
+        "embedding",
+        "media",
+        "runtime",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "speaker-embedding-clustering",
+      "duration_seconds" : 0.0013469457626342773,
+      "name" : "speaker-embedding-clustering",
+      "status" : "passed",
+      "tags" : [
+        "clustering",
+        "diarization",
+        "embedding",
+        "replay",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "speaker-hybrid-clustering",
+      "duration_seconds" : 0.004513978958129883,
+      "name" : "speaker-hybrid-clustering",
+      "status" : "passed",
+      "tags" : [
+        "acoustic",
+        "clustering",
+        "embedding",
+        "hybrid",
+        "replay",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "transcribe-cli-observability",
+      "duration_seconds" : 0.2574000358581543,
+      "name" : "transcribe-cli-observability",
+      "status" : "passed",
+      "tags" : [
+        "ablation",
+        "cli",
+        "observability",
+        "replay"
+      ]
+    },
+    {
+      "display_name" : "parallel-acoustic-evidence",
+      "duration_seconds" : 0.3797330856323242,
+      "name" : "parallel-acoustic-evidence",
+      "status" : "passed",
+      "tags" : [
+        "acoustic",
+        "diarization",
+        "enhancement",
+        "noise"
+      ]
+    },
+    {
+      "display_name" : "acoustic-performance-invariants",
+      "duration_seconds" : 0.04218101501464844,
+      "name" : "acoustic-performance-invariants",
+      "status" : "passed",
+      "tags" : [
+        "acoustic",
+        "diarization",
+        "performance"
+      ]
+    },
+    {
+      "display_name" : "session-acoustic-analysis",
+      "duration_seconds" : 0.17067503929138184,
+      "name" : "session-acoustic-analysis",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "media",
+        "provenance",
+        "session"
+      ]
+    },
+    {
+      "display_name" : "speaker-observations",
+      "duration_seconds" : 0.03764808177947998,
+      "name" : "speaker-observations",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "profile",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "multi-view-speaker-profile",
+      "duration_seconds" : 0.2763180732727051,
+      "name" : "multi-view-speaker-profile",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "multi-view",
+        "profile",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "multi-view-calibration",
+      "duration_seconds" : 0.5458550453186035,
+      "name" : "multi-view-calibration",
+      "status" : "passed",
+      "tags" : [
+        "calibration",
+        "diarization",
+        "multi-view",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "session-speaker-clustering",
+      "duration_seconds" : 0.17799091339111328,
+      "name" : "session-speaker-clustering",
+      "status" : "passed",
+      "tags" : [
+        "clustering",
+        "diarization",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "diarization-semantics",
+      "duration_seconds" : 0.0005819797515869141,
+      "name" : "diarization-semantics",
+      "status" : "passed",
+      "tags" : [
+        "diarization",
+        "speaker"
+      ]
+    },
+    {
+      "display_name" : "speech-alignment",
+      "duration_seconds" : 0.0004200935363769531,
+      "name" : "speech-alignment",
+      "status" : "passed",
+      "tags" : [
+        "alignment",
+        "diarization",
+        "transcription"
+      ]
+    },
+    {
+      "display_name" : "speech-alignment-inference",
+      "duration_seconds" : 0.00045800209045410156,
+      "name" : "speech-alignment-inference",
+      "status" : "passed",
+      "tags" : [
+        "alignment",
+        "diarization",
+        "inference",
+        "transcription"
+      ]
+    },
+    {
+      "display_name" : "apple-provider-contract",
+      "duration_seconds" : 0.00041103363037109375,
+      "name" : "apple-provider-contract",
+      "status" : "passed",
+      "tags" : [
+        "apple",
+        "provider",
+        "speech"
+      ]
+    }
+  ],
+  "skipped" : 0,
+  "title" : "Transcribe",
+  "total" : 31
+}
