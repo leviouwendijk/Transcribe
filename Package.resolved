@@ -1,5 +1,5 @@
 {
-  "originHash" : "c8c67d39454c8de6e343f660fa18aaa14b4ae61ddc690d52cc70cf255e0fbadf",
+  "originHash" : "6d15f9777684675c8e6173f658bfa3975bf64fc32d1c24ac81aa9c39a24aaa29",
   "pins" : [
     {
       "identity" : "ansi",
@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/FluidInference/FluidAudio.git",
       "state" : {
-        "revision" : "19600a485baa4998812e4654b70d2bab8f2c9949",
-        "version" : "0.15.5"
+        "revision" : "503b4bd1bbf7220882de39fe8ae6716aae4132da",
+        "version" : "0.17.7"
       }
     },
     {
@@ -106,7 +106,7 @@
       "location" : "https://github.com/leviouwendijk/Media.git",
       "state" : {
         "branch" : "master",
-        "revision" : "4bb60c5b012b4971ad6c6b70fb2287f88101866a"
+        "revision" : "08f910154e2e1a392590528c03f7722839f512b2"
       }
     },
     {

@@ -66,7 +66,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/FluidInference/FluidAudio.git",
-            exact: "0.15.5"
+            exact: "0.17.7"
         ),
         .package(
             url: "https://github.com/leviouwendijk/Media.git",
@@ -227,3 +227,22 @@ let package = Package(
         .v6,
     ]
 )
+
+for target in package.targets {
+    switch target.type {
+    case .regular, .executable, .test, .macro:
+        var settings = target.swiftSettings ?? []
+
+        settings.append(
+            .treatAllWarnings(as: .error)
+        )
+
+        target.swiftSettings = settings
+
+    case .plugin, .system, .binary:
+        break
+
+    @unknown default:
+        break
+    }
+}

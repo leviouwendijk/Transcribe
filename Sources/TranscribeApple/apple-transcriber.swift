@@ -534,20 +534,13 @@ private extension AppleTranscriber {
         }
 
         var conversionError: NSError?
-        var suppliedInput = false
+        let input = AppleAudioConverterInput(buffer: buffer)
 
         let status = converter.convert(
             to: converted,
             error: &conversionError
         ) { _, inputStatus in
-            guard !suppliedInput else {
-                inputStatus.pointee = .noDataNow
-                return nil
-            }
-
-            suppliedInput = true
-            inputStatus.pointee = .haveData
-            return buffer
+            input.take(inputStatus)
         }
 
         switch status {
@@ -623,6 +616,35 @@ private extension AppleTranscriber {
         }
 
         return audioBuffer
+    }
+}
+
+// AVAudioConverter's input block is @Sendable even though AVAudioPCMBuffer is not.
+// This adapter owns a freshly prepared PCM buffer for one synchronous conversion.
+// The lock protects its one-time transfer to the converter, including repeat calls.
+// No caller mutates the source buffer while conversion is in progress.
+private final class AppleAudioConverterInput: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pending: AVAudioPCMBuffer?
+
+    init(buffer: AVAudioPCMBuffer) {
+        pending = buffer
+    }
+
+    func take(
+        _ inputStatus: UnsafeMutablePointer<AVAudioConverterInputStatus>
+    ) -> AVAudioPCMBuffer? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard let buffer = pending else {
+            inputStatus.pointee = .noDataNow
+            return nil
+        }
+
+        pending = nil
+        inputStatus.pointee = .haveData
+        return buffer
     }
 }
 
