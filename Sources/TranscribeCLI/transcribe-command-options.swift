@@ -7,6 +7,10 @@ enum TranscribeCommandOptionsError: Error, LocalizedError, Sendable {
     case missingAudioFile
     case invalidModel(String)
     case invalidSpeakerCount(String)
+    case invalidMaximumSpeakerCount(String)
+    case missingSpeakerEmbeddingProvider
+    case invalidSpeakerEvidenceWeights
+    case unexpectedSpeakerEvidenceWeights
 
     var errorDescription: String? {
         switch self {
@@ -16,6 +20,14 @@ enum TranscribeCommandOptionsError: Error, LocalizedError, Sendable {
             "model must be speech or dictation, not '\(value)'"
         case .invalidSpeakerCount(let value):
             "speaker-count must be a positive integer, not '\(value)'"
+        case .invalidMaximumSpeakerCount(let value):
+            "max-speakers must be positive and at least the expected count, not '\(value)'"
+        case .missingSpeakerEmbeddingProvider:
+            "embedding or hybrid speaker evidence requires --speaker-embeddings fluid-audio"
+        case .invalidSpeakerEvidenceWeights:
+            "hybrid weights must be finite, nonnegative, and have a positive sum"
+        case .unexpectedSpeakerEvidenceWeights:
+            "speaker evidence weights are only valid with --speaker-evidence hybrid"
         }
     }
 }
@@ -34,6 +46,12 @@ enum TranscribeModelArgument: String, Sendable, ArgumentValue {
 
 enum TranscribeSpeakerEmbeddingArgument: String, Sendable, ArgumentValue {
     case fluidAudio = "fluid-audio"
+}
+
+enum TranscribeSpeakerEvidenceArgument: String, Sendable, ArgumentValue {
+    case acoustic
+    case embedding
+    case hybrid
 }
 
 enum TranscribeContextDetailArgument: String, Sendable, ArgumentValue {
@@ -57,6 +75,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
     let localeIdentifier: String
     let model: AppleTranscriptionModel
     let expectedSpeakerCount: Int?
+    let maximumSpeakerCount: Int
     let traceOutput: URL?
     let contextOutput: URL?
     let contextDetail: SpeechAnalysisContextDetail
@@ -64,6 +83,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
     let speakerAblationDetail: Bool
     let speakerCalibration: Bool
     let speakerEmbeddings: TranscribeSpeakerEmbeddingArgument?
+    let speakerEvidenceMode: AppleSpeakerEvidenceMode
 
     init(arguments: Payload) throws {
         let audioFile = clean(arguments.audioFile)
@@ -108,6 +128,12 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
             }
         }
 
+        let ceiling = arguments.maxSpeakers ?? max(4, expectedSpeakerCount ?? 0)
+        guard ceiling > 0, ceiling >= (expectedSpeakerCount ?? 0) else {
+            throw TranscribeCommandOptionsError.invalidMaximumSpeakerCount(String(ceiling))
+        }
+        maximumSpeakerCount = ceiling
+
         traceOutput = outputURL(
             arguments.traceOutput ?? arguments.legacyTraceOutput
         )
@@ -117,6 +143,32 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
         speakerAblationDetail = arguments.speakerAblationDetail
         speakerCalibration = arguments.speakerCalibration
         speakerEmbeddings = arguments.speakerEmbeddings
+        let selectedEvidence = arguments.speakerEvidence
+        if selectedEvidence != .hybrid,
+           arguments.acousticWeight != nil || arguments.embeddingWeight != nil {
+            throw TranscribeCommandOptionsError.unexpectedSpeakerEvidenceWeights
+        }
+        switch selectedEvidence {
+        case .acoustic:
+            speakerEvidenceMode = .acoustic
+        case .embedding:
+            guard speakerEmbeddings != nil else {
+                throw TranscribeCommandOptionsError.missingSpeakerEmbeddingProvider
+            }
+            speakerEvidenceMode = .embedding
+        case .hybrid:
+            guard speakerEmbeddings != nil else {
+                throw TranscribeCommandOptionsError.missingSpeakerEmbeddingProvider
+            }
+            let acoustic = arguments.acousticWeight ?? 0.5
+            let embedding = arguments.embeddingWeight ?? 0.5
+            guard acoustic.isFinite, embedding.isFinite,
+                  acoustic >= 0, embedding >= 0,
+                  acoustic + embedding > 0 else {
+                throw TranscribeCommandOptionsError.invalidSpeakerEvidenceWeights
+            }
+            speakerEvidenceMode = .hybrid(.init(acoustic: acoustic, embedding: embedding))
+        }
     }
 
     struct Payload: ArgumentGroup {
@@ -164,6 +216,9 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
         @Opt("speaker-count", short: "s", help: "Expected positive speaker count.")
         var speakerCount: Int?
 
+        @Opt("max-speakers", help: "Upper bound for inferred speaker count; default 4.")
+        var maxSpeakers: Int?
+
         @Opt("trace-output", short: "t", help: "Write acoustic trace CSV to this path.")
         var traceOutput: String?
 
@@ -200,6 +255,16 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
             help: "Acquire retained speaker embeddings: fluid-audio."
         )
         var speakerEmbeddings: TranscribeSpeakerEmbeddingArgument?
+
+        @Opt("speaker-evidence", default: .acoustic,
+             help: "Speaker clustering evidence: acoustic, embedding, or hybrid.")
+        var speakerEvidence: TranscribeSpeakerEvidenceArgument
+
+        @Opt("acoustic-weight", help: "Hybrid acoustic evidence weight; default 0.5.")
+        var acousticWeight: Double?
+
+        @Opt("embedding-weight", help: "Hybrid embedding evidence weight; default 0.5.")
+        var embeddingWeight: Double?
 
         init() {}
     }

@@ -7,7 +7,8 @@ import TranscribeApple
 enum TranscribeCommandRunner {
     static func run(_ options: TranscribeCommandOptions) async throws {
         let diarizationConfiguration = DiarizationConfiguration(
-            expectedSpeakerCount: options.expectedSpeakerCount
+            expectedSpeakerCount: options.expectedSpeakerCount,
+            maximumSpeakerCount: options.maximumSpeakerCount
         )
         let runner = AppleSpeechAnalysisRunner()
         let result: AppleSpeechAnalysisResult
@@ -18,7 +19,8 @@ enum TranscribeCommandRunner {
                 file: options.file,
                 localeIdentifier: options.localeIdentifier,
                 model: options.model,
-                diarizationConfiguration: diarizationConfiguration
+                diarizationConfiguration: diarizationConfiguration,
+                speakerEvidenceMode: options.speakerEvidenceMode
             )
 
         case .some(.fluidAudio):
@@ -27,7 +29,8 @@ enum TranscribeCommandRunner {
                 localeIdentifier: options.localeIdentifier,
                 model: options.model,
                 diarizationConfiguration: diarizationConfiguration,
-                speakerEmbeddingProvider: FluidAudioSpeakerEmbeddingProvider()
+                speakerEmbeddingProvider: FluidAudioSpeakerEmbeddingProvider(),
+                speakerEvidenceMode: options.speakerEvidenceMode
             )
         }
 
@@ -39,7 +42,8 @@ enum TranscribeCommandRunner {
                 requestedProvider: requestedProvider.rawValue
             )
 
-            if let baseline = result.analysis.diarization {
+            if options.speakerEvidenceMode == .acoustic,
+               let baseline = result.analysis.diarization {
                 let diarizer = Diarizer()
 
                 if let embeddingReplay = diarizer.replay(

@@ -64,8 +64,12 @@ public struct AppleSpeechAnalysisRunner: Sendable {
         model: AppleTranscriptionModel = .speech,
         trackID: Int32? = nil,
         diarizationConfiguration: DiarizationConfiguration = .init(),
-        speakerEmbeddingProvider: (any SpeakerEmbeddingProvider)? = nil
+        speakerEmbeddingProvider: (any SpeakerEmbeddingProvider)? = nil,
+        speakerEvidenceMode: AppleSpeakerEvidenceMode = .acoustic
     ) async throws -> AppleSpeechAnalysisResult {
+        if speakerEvidenceMode != .acoustic, speakerEmbeddingProvider == nil {
+            throw AppleSpeakerEvidenceModeError.embeddingProviderRequired
+        }
         let file = file.standardizedFileURL
         let totalStarted = uptime()
 
@@ -116,11 +120,31 @@ public struct AppleSpeechAnalysisRunner: Sendable {
                 enhancement: diarizationResult.enhancement
             )
 
-            diarizationResult = Diarizer().replay(
-                enrichedSource
-            )
-            speakerEmbeddingSeconds = uptime()
-                - embeddingStarted
+            switch speakerEvidenceMode {
+            case .acoustic:
+                diarizationResult = Diarizer().replay(enrichedSource)
+            case .embedding:
+                guard let result = Diarizer().replay(
+                    enrichedSource,
+                    clusteringRepresentation: .embedding
+                ) else {
+                    throw AppleSpeakerEvidenceModeError.embeddingEvidenceUnavailable
+                }
+                diarizationResult = result
+            case .hybrid(let weights):
+                guard let result = Diarizer().replay(
+                    enrichedSource,
+                    clusteringRepresentation: .hybrid,
+                    hybridWeights: weights
+                ) else {
+                    throw AppleSpeakerEvidenceModeError.embeddingEvidenceUnavailable
+                }
+                diarizationResult = result
+            }
+            speakerEmbeddingSeconds = uptime() - embeddingStarted
+        } else if speakerEvidenceMode != .acoustic,
+                  !diarizationResult.observations.isEmpty {
+            throw AppleSpeakerEvidenceModeError.embeddingEvidenceUnavailable
         }
 
         let alignmentStarted = uptime()
