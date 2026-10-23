@@ -50,6 +50,8 @@ let package = Package(
                 "TranscribeCLI",
             ]
         ),
+
+        // test binary
         .executable(
             name: "transtest",
             targets: [

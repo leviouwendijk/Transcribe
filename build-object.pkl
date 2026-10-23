@@ -1,0 +1,20 @@
+uuid = "AEA9F8B6-7AF9-4886-A6E2-0BADF402C429"
+name = "Transcribe"
+types { "library" }
+versions {
+    release {
+        major = 0
+        minor = 1
+        patch = 0
+    }
+}
+compile {
+    use = false
+    arguments { }
+}
+tests {
+    primary = "transtest"
+}
+details = ""
+author = "levi"
+update = "https://raw.githubusercontent.com/leviouwendijk/Transcribe/master/build-object.pkl"

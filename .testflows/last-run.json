@@ -1,14 +1,14 @@
 {
-  "failed" : 1,
+  "failed" : 0,
   "failed_names" : [
-    "transcribe-cli-observability"
+
   ],
-  "generated_at" : "2026-10-23T14:17:52Z",
-  "passed" : 31,
+  "generated_at" : "2026-10-23T15:30:38Z",
+  "passed" : 32,
   "results" : [
     {
       "display_name" : "transcription-semantics",
-      "duration_seconds" : 0.0016689300537109375,
+      "duration_seconds" : 0.0015549659729003906,
       "name" : "transcription-semantics",
       "status" : "passed",
       "tags" : [
@@ -18,7 +18,7 @@
     },
     {
       "display_name" : "acoustic-observations",
-      "duration_seconds" : 0.03659796714782715,
+      "duration_seconds" : 0.02886497974395752,
       "name" : "acoustic-observations",
       "status" : "passed",
       "tags" : [
@@ -29,7 +29,7 @@
     },
     {
       "display_name" : "acoustic-activity",
-      "duration_seconds" : 0.03292202949523926,
+      "duration_seconds" : 0.03824210166931152,
       "name" : "acoustic-activity",
       "status" : "passed",
       "tags" : [
@@ -40,7 +40,7 @@
     },
     {
       "display_name" : "acoustic-traces",
-      "duration_seconds" : 0.09963500499725342,
+      "duration_seconds" : 0.0907660722732544,
       "name" : "acoustic-traces",
       "status" : "passed",
       "tags" : [
@@ -52,7 +52,7 @@
     },
     {
       "display_name" : "acoustic-trace-export",
-      "duration_seconds" : 0.1399860382080078,
+      "duration_seconds" : 0.12517201900482178,
       "name" : "acoustic-trace-export",
       "status" : "passed",
       "tags" : [
@@ -63,7 +63,7 @@
     },
     {
       "display_name" : "pitch-inference",
-      "duration_seconds" : 0.11368000507354736,
+      "duration_seconds" : 0.1002800464630127,
       "name" : "pitch-inference",
       "status" : "passed",
       "tags" : [
@@ -74,7 +74,7 @@
     },
     {
       "display_name" : "acoustic-noise-evidence",
-      "duration_seconds" : 0.12785696983337402,
+      "duration_seconds" : 0.11886000633239746,
       "name" : "acoustic-noise-evidence",
       "status" : "passed",
       "tags" : [
@@ -86,7 +86,7 @@
     },
     {
       "display_name" : "speaker-evidence-reliability",
-      "duration_seconds" : 0.14851605892181396,
+      "duration_seconds" : 0.14741301536560059,
       "name" : "speaker-evidence-reliability",
       "status" : "passed",
       "tags" : [
@@ -98,7 +98,7 @@
     },
     {
       "display_name" : "speaker-temporal-coherence",
-      "duration_seconds" : 0.15055394172668457,
+      "duration_seconds" : 0.14767694473266602,
       "name" : "speaker-temporal-coherence",
       "status" : "passed",
       "tags" : [
@@ -110,7 +110,7 @@
     },
     {
       "display_name" : "retained-inference-provenance",
-      "duration_seconds" : 0.14901506900787354,
+      "duration_seconds" : 0.14913105964660645,
       "name" : "retained-inference-provenance",
       "status" : "passed",
       "tags" : [
@@ -122,7 +122,7 @@
     },
     {
       "display_name" : "speech-analysis-context",
-      "duration_seconds" : 0.0028170347213745117,
+      "duration_seconds" : 0.0029239654541015625,
       "name" : "speech-analysis-context",
       "status" : "passed",
       "tags" : [
@@ -135,7 +135,7 @@
     },
     {
       "display_name" : "speaker-diarization-replay",
-      "duration_seconds" : 0.5107059478759766,
+      "duration_seconds" : 0.44579291343688965,
       "name" : "speaker-diarization-replay",
       "status" : "passed",
       "tags" : [
@@ -148,7 +148,7 @@
     },
     {
       "display_name" : "speaker-diarization-replay-calibration",
-      "duration_seconds" : 0.15366101264953613,
+      "duration_seconds" : 0.13676607608795166,
       "name" : "speaker-diarization-replay-calibration",
       "status" : "passed",
       "tags" : [
@@ -161,7 +161,7 @@
     },
     {
       "display_name" : "speaker-embedding-semantics",
-      "duration_seconds" : 0.03267800807952881,
+      "duration_seconds" : 0.029985904693603516,
       "name" : "speaker-embedding-semantics",
       "status" : "passed",
       "tags" : [
@@ -173,7 +173,7 @@
     },
     {
       "display_name" : "speaker-embedding-provider",
-      "duration_seconds" : 0.004498004913330078,
+      "duration_seconds" : 0.0043610334396362305,
       "name" : "speaker-embedding-provider",
       "status" : "passed",
       "tags" : [
@@ -185,7 +185,7 @@
     },
     {
       "display_name" : "fluid-audio-embedding-provider",
-      "duration_seconds" : 0.0004639625549316406,
+      "duration_seconds" : 0.00026094913482666016,
       "name" : "fluid-audio-embedding-provider",
       "status" : "passed",
       "tags" : [
@@ -198,7 +198,7 @@
     },
     {
       "display_name" : "speaker-embedding-runtime",
-      "duration_seconds" : 0.009557962417602539,
+      "duration_seconds" : 0.008442997932434082,
       "name" : "speaker-embedding-runtime",
       "status" : "passed",
       "tags" : [
@@ -210,7 +210,7 @@
     },
     {
       "display_name" : "speaker-embedding-clustering",
-      "duration_seconds" : 0.0006560087203979492,
+      "duration_seconds" : 0.0007839202880859375,
       "name" : "speaker-embedding-clustering",
       "status" : "passed",
       "tags" : [
@@ -223,7 +223,7 @@
     },
     {
       "display_name" : "speaker-hybrid-clustering",
-      "duration_seconds" : 0.0019469261169433594,
+      "duration_seconds" : 0.00244903564453125,
       "name" : "speaker-hybrid-clustering",
       "status" : "passed",
       "tags" : [
@@ -237,9 +237,9 @@
     },
     {
       "display_name" : "transcribe-cli-observability",
-      "duration_seconds" : 0.19419705867767334,
+      "duration_seconds" : 0.5979700088500977,
       "name" : "transcribe-cli-observability",
-      "status" : "failed",
+      "status" : "passed",
       "tags" : [
         "ablation",
         "cli",
@@ -249,7 +249,7 @@
     },
     {
       "display_name" : "parallel-acoustic-evidence",
-      "duration_seconds" : 0.27176594734191895,
+      "duration_seconds" : 0.29938995838165283,
       "name" : "parallel-acoustic-evidence",
       "status" : "passed",
       "tags" : [
@@ -261,7 +261,7 @@
     },
     {
       "display_name" : "acoustic-performance-invariants",
-      "duration_seconds" : 0.043923020362854004,
+      "duration_seconds" : 0.04329800605773926,
       "name" : "acoustic-performance-invariants",
       "status" : "passed",
       "tags" : [
@@ -272,7 +272,7 @@
     },
     {
       "display_name" : "session-acoustic-analysis",
-      "duration_seconds" : 0.12423098087310791,
+      "duration_seconds" : 0.12159299850463867,
       "name" : "session-acoustic-analysis",
       "status" : "passed",
       "tags" : [
@@ -284,7 +284,7 @@
     },
     {
       "display_name" : "speaker-observations",
-      "duration_seconds" : 0.030151963233947754,
+      "duration_seconds" : 0.0299299955368042,
       "name" : "speaker-observations",
       "status" : "passed",
       "tags" : [
@@ -295,7 +295,7 @@
     },
     {
       "display_name" : "multi-view-speaker-profile",
-      "duration_seconds" : 0.2621450424194336,
+      "duration_seconds" : 0.2504919767379761,
       "name" : "multi-view-speaker-profile",
       "status" : "passed",
       "tags" : [
@@ -307,7 +307,7 @@
     },
     {
       "display_name" : "multi-view-calibration",
-      "duration_seconds" : 0.45305299758911133,
+      "duration_seconds" : 0.4048800468444824,
       "name" : "multi-view-calibration",
       "status" : "passed",
       "tags" : [
@@ -319,7 +319,7 @@
     },
     {
       "display_name" : "session-speaker-clustering",
-      "duration_seconds" : 0.13887596130371094,
+      "duration_seconds" : 0.13405299186706543,
       "name" : "session-speaker-clustering",
       "status" : "passed",
       "tags" : [
@@ -330,7 +330,7 @@
     },
     {
       "display_name" : "diarization-semantics",
-      "duration_seconds" : 0.0007469654083251953,
+      "duration_seconds" : 0.0004019737243652344,
       "name" : "diarization-semantics",
       "status" : "passed",
       "tags" : [
@@ -340,7 +340,7 @@
     },
     {
       "display_name" : "speech-alignment",
-      "duration_seconds" : 0.00022804737091064453,
+      "duration_seconds" : 0.0002480745315551758,
       "name" : "speech-alignment",
       "status" : "passed",
       "tags" : [
@@ -351,7 +351,7 @@
     },
     {
       "display_name" : "speech-alignment-inference",
-      "duration_seconds" : 0.00019693374633789062,
+      "duration_seconds" : 0.00020396709442138672,
       "name" : "speech-alignment-inference",
       "status" : "passed",
       "tags" : [
@@ -363,7 +363,7 @@
     },
     {
       "display_name" : "apple-provider-contract",
-      "duration_seconds" : 0.00015604496002197266,
+      "duration_seconds" : 0.000164031982421875,
       "name" : "apple-provider-contract",
       "status" : "passed",
       "tags" : [
@@ -374,7 +374,7 @@
     },
     {
       "display_name" : "speaker-evidence-mode",
-      "duration_seconds" : 0.000431060791015625,
+      "duration_seconds" : 0.00020003318786621094,
       "name" : "speaker-evidence-mode",
       "status" : "passed",
       "tags" : [
