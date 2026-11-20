@@ -50,14 +50,6 @@ let package = Package(
                 "TranscribeCLI",
             ]
         ),
-
-        // test binary
-        .executable(
-            name: "transtest",
-            targets: [
-                "TranscribeTestFlows",
-            ]
-        ),
     ],
     dependencies: [
         .package(
@@ -82,10 +74,6 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/leviouwendijk/Terminal.git",
-            branch: "master"
-        ),
-        .package(
-            url: "https://github.com/leviouwendijk/TestFlows.git",
             branch: "master"
         ),
     ],
@@ -196,29 +184,6 @@ let package = Package(
                 .product(
                     name: "Terminal",
                     package: "Terminal"
-                ),
-            ]
-        ),
-        .executableTarget(
-            name: "TranscribeTestFlows",
-            dependencies: [
-                "Transcribe",
-                "TranscribeApple",
-                "Diarization",
-                "EmbeddingProviderFluidAudio",
-                "SpeechAnalysis",
-                "SpeechAnalysisContext",
-                .product(
-                    name: "MediaCore",
-                    package: "Media"
-                ),
-                .product(
-                    name: "Schema",
-                    package: "Schema"
-                ),
-                .product(
-                    name: "TestFlows",
-                    package: "TestFlows"
                 ),
             ]
         ),
