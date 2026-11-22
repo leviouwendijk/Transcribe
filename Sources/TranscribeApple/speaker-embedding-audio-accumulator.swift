@@ -2,11 +2,12 @@ import Foundation
 import MediaAudio
 import MediaCore
 
-package struct SpeakerEmbeddingAudio: Sendable {
-    package let buffer: MediaAudioBuffer
-    package let startingAt: TimeInterval
+@_spi(Testing)
+public struct SpeakerEmbeddingAudio: Sendable {
+    public let buffer: MediaAudioBuffer
+    public let startingAt: TimeInterval
 
-    package init(
+    public init(
         buffer: MediaAudioBuffer,
         startingAt: TimeInterval
     ) {
@@ -15,7 +16,8 @@ package struct SpeakerEmbeddingAudio: Sendable {
     }
 }
 
-package final class SpeakerEmbeddingAudioAccumulator:
+@_spi(Testing)
+public final class SpeakerEmbeddingAudioAccumulator:
     @unchecked Sendable
 {
     private let lock = NSLock()
@@ -27,9 +29,9 @@ package final class SpeakerEmbeddingAudioAccumulator:
     private var sampleRate: Int?
     private var finished = false
 
-    package init() {}
+    public init() {}
 
-    package func consume(
+    public func consume(
         _ chunk: MediaAudioChunk
     ) {
         lock.lock()
@@ -74,7 +76,7 @@ package final class SpeakerEmbeddingAudioAccumulator:
         )
     }
 
-    package func finish() -> SpeakerEmbeddingAudio? {
+    public func finish() -> SpeakerEmbeddingAudio? {
         lock.lock()
 
         defer {

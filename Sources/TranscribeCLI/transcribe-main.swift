@@ -181,6 +181,10 @@ extension TranscribeCLI {
             print(
                 "nearest assignments: \(alignment.assignments(using: .nearestEvidence).count)"
             )
+
+            print(
+                "word assignments: \(alignment.words.count) words, \(alignment.words(in: .attributed).count) attributed, \(alignment.words(in: .overlap).count) overlap, \(alignment.words(in: .uncertain).count) uncertain"
+            )
         }
 
         for profile in diarization.profiles.sorted(by: {
@@ -222,19 +226,28 @@ extension TranscribeCLI {
     }
 
     static func render(
-        _ attributed: AttributedTranscriptionSegment
+        _ turn: SpeakerTurn
     ) {
-        let speaker = attributed.speaker?.rawValue
-            ?? "unassigned"
+        let speaker: String
 
-        let confidence = attributed.speakerConfidence.map {
+        switch turn.state {
+        case .attributed:
+            speaker = turn.speaker?.rawValue
+                ?? "unassigned"
+        case .overlap:
+            speaker = "overlap(\(turn.candidates.map(\.rawValue).joined(separator: "|")))"
+        case .uncertain:
+            speaker = "uncertain"
+        }
+
+        let confidence = turn.confidence.map {
             String(
                 format: " %.2f",
                 $0
             )
         } ?? ""
 
-        if let range = attributed.segment.range {
+        if let range = turn.range {
             print(
                 String(
                     format: "[%.2f ... %.2f] %@%@  %@",
@@ -242,12 +255,12 @@ extension TranscribeCLI {
                     range.end,
                     speaker,
                     confidence,
-                    attributed.segment.text
+                    turn.text
                 )
             )
         } else {
             print(
-                "[no-time] \(speaker)\(confidence)  \(attributed.segment.text)"
+                "[no-time] \(speaker)\(confidence)  \(turn.text)"
             )
         }
     }

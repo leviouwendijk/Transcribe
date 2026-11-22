@@ -1,6 +1,6 @@
 import MediaCore
 import TestFlows
-import TranscribeApple
+@_spi(Testing) import TranscribeApple
 
 extension TranscribeFlowSuite {
     static var speakerEmbeddingRuntimeFlow: TestFlow {

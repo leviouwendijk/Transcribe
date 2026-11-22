@@ -165,11 +165,12 @@ private extension FluidAudioSpeakerEmbeddingProvider {
     }
 }
 
-package enum FluidAudioSpeakerEmbeddingSupport {
-    package static let segmentationModelBundleName = "pyannote_segmentation.mlmodelc"
-    package static let embeddingModelBundleName = "wespeaker_v2.mlmodelc"
+@_spi(Testing)
+public enum FluidAudioSpeakerEmbeddingSupport {
+    public static let segmentationModelBundleName = "pyannote_segmentation.mlmodelc"
+    public static let embeddingModelBundleName = "wespeaker_v2.mlmodelc"
 
-    package static func localModelURLs(
+    public static func localModelURLs(
         for source: FluidAudioEmbeddingModelSource
     ) -> (
         segmentation: URL,
@@ -191,7 +192,7 @@ package enum FluidAudioSpeakerEmbeddingSupport {
         )
     }
 
-    package static func sampleRange(
+    public static func sampleRange(
         for range: Audio.TimeRange,
         audioStartingAt: TimeInterval,
         sampleRate: Int,
@@ -249,7 +250,7 @@ package enum FluidAudioSpeakerEmbeddingSupport {
         return lowerBound..<upperBound
     }
 
-    package static func embedding(
+    public static func embedding(
         _ values: [Float],
         model: FluidAudioEmbeddingModel
     ) -> SpeakerEmbedding? {

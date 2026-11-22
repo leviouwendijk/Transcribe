@@ -34,6 +34,7 @@ enum TranscribeFlowSuite: TestFlowRegistry {
         diarizationFlow,
         alignmentFlow,
         alignmentInferenceFlow,
+        wordAlignmentFlow,
         appleContractFlow,
         speakerEvidenceModeFlow,
     ]

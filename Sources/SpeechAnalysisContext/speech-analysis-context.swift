@@ -48,6 +48,26 @@ public struct SpeechAnalysisTranscriptSegmentContext:
 }
 
 @JSONSchema
+public struct SpeechAnalysisTranscriptTurnContext:
+    Sendable,
+    Codable,
+    Hashable
+{
+    /// attributed, overlap or uncertain.
+    public let state: String
+    /// Set only for attributed turns.
+    public let speaker: String?
+    /// Speakers supporting an overlap turn.
+    public let candidates: [String]
+    public let text: String
+    public let range: SpeechAnalysisTimeRangeContext?
+    public let speakerConfidence: Double?
+    public let segmentIndices: [Int]
+    /// Timed words in the turn; 0 when attributed per segment.
+    public let wordCount: Int
+}
+
+@JSONSchema
 public struct SpeechAnalysisTranscriptContext:
     Sendable,
     Codable,
@@ -55,9 +75,14 @@ public struct SpeechAnalysisTranscriptContext:
 {
     public let localeIdentifier: String?
     public let text: String
+    /// Speaker turns in order; read these for who said what.
+    public let turns: [SpeechAnalysisTranscriptTurnContext]
     public let segments: [SpeechAnalysisTranscriptSegmentContext]
     public let assignedSegmentCount: Int
     public let unassignedSegmentCount: Int
+    public let wordCount: Int
+    public let overlapWordCount: Int
+    public let uncertainWordCount: Int
 }
 
 @JSONSchema
@@ -256,6 +281,7 @@ public struct SpeechAnalysisAlignmentConfigurationContext:
     public let maximumNearestEvidenceDistanceSeconds: Double
     public let minimumBridgedConfidence: Double
     public let minimumNearestConfidence: Double
+    public let minimumWordDominance: Double
 }
 
 @JSONSchema
@@ -600,12 +626,37 @@ private extension SpeechAnalysisContextProjector {
             $0.speaker != nil
         }.count
 
+        let words = value.segments.flatMap(\.words)
+
         return .init(
             localeIdentifier: value.localeIdentifier,
             text: value.text,
+            turns: value.turns.map(turn),
             segments: segments,
             assignedSegmentCount: assigned,
-            unassignedSegmentCount: segments.count - assigned
+            unassignedSegmentCount: segments.count - assigned,
+            wordCount: words.count,
+            overlapWordCount: words.filter {
+                $0.assignment?.state == .overlap
+            }.count,
+            uncertainWordCount: words.filter {
+                $0.assignment?.state == .uncertain
+            }.count
+        )
+    }
+
+    func turn(
+        _ value: SpeakerTurn
+    ) -> SpeechAnalysisTranscriptTurnContext {
+        .init(
+            state: value.state.rawValue,
+            speaker: value.speaker?.rawValue,
+            candidates: value.candidates.map(\.rawValue),
+            text: value.text,
+            range: value.range.map(range),
+            speakerConfidence: value.confidence,
+            segmentIndices: value.segmentIndices,
+            wordCount: value.wordCount
         )
     }
 
@@ -764,7 +815,8 @@ private extension SpeechAnalysisContextProjector {
             maximumBridgeGapSeconds: value.maximumBridgeGapSeconds,
             maximumNearestEvidenceDistanceSeconds: value.maximumNearestEvidenceDistanceSeconds,
             minimumBridgedConfidence: value.minimumBridgedConfidence,
-            minimumNearestConfidence: value.minimumNearestConfidence
+            minimumNearestConfidence: value.minimumNearestConfidence,
+            minimumWordDominance: value.minimumWordDominance
         )
     }
 

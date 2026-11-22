@@ -1,5 +1,5 @@
 import Diarization
-import EmbeddingProviderFluidAudio
+@_spi(Testing) import EmbeddingProviderFluidAudio
 import Foundation
 import MediaCore
 import TestFlows

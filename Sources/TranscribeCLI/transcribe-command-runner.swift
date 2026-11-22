@@ -127,8 +127,8 @@ enum TranscribeCommandRunner {
 
         print("")
         print("=== attributed transcript ===")
-        for attributed in result.analysis.attributedSegments {
-            TranscribeCLI.render(attributed)
+        for turn in result.analysis.attributedTranscription?.turns ?? [] {
+            TranscribeCLI.render(turn)
         }
 
         print("")

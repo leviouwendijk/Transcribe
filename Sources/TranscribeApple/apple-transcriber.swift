@@ -86,7 +86,7 @@ private extension AppleTranscriber {
 
         let transcriber = SpeechTranscriber(
             locale: locale,
-            preset: .timeIndexedTranscriptionWithAlternatives
+            preset: .timeIndexedWordTranscription
         )
 
         try await ensureAssets(
@@ -154,7 +154,7 @@ private extension AppleTranscriber {
 
         let transcriber = DictationTranscriber(
             locale: locale,
-            preset: .timeIndexedLongDictation
+            preset: .timeIndexedWordDictation
         )
 
         try await ensureAssets(
@@ -249,19 +249,10 @@ private extension AppleTranscriber {
     func segment(
         _ result: SpeechTranscriber.Result
     ) -> TranscriptionSegment {
-        .init(
-            text: String(
-                result.text.characters
-            ),
-            range: audioTimeRange(
-                result.range
-            ),
-            confidence: nil,
-            alternatives: result.alternatives.map {
-                String(
-                    $0.characters
-                )
-            },
+        makeSegment(
+            text: result.text,
+            range: result.range,
+            alternatives: result.alternatives,
             isFinal: result.isFinal
         )
     }
@@ -269,43 +260,41 @@ private extension AppleTranscriber {
     func segment(
         _ result: DictationTranscriber.Result
     ) -> TranscriptionSegment {
-        .init(
-            text: String(
-                result.text.characters
-            ),
-            range: audioTimeRange(
-                result.range
-            ),
-            confidence: nil,
-            alternatives: result.alternatives.map {
-                String(
-                    $0.characters
-                )
-            },
+        makeSegment(
+            text: result.text,
+            range: result.range,
+            alternatives: result.alternatives,
             isFinal: result.isFinal
         )
     }
 
-    func audioTimeRange(
-        _ range: CMTimeRange
-    ) -> Audio.TimeRange? {
-        let start = CMTimeGetSeconds(
-            range.start
+    func makeSegment(
+        text: AttributedString,
+        range: CMTimeRange,
+        alternatives: [AttributedString],
+        isFinal: Bool
+    ) -> TranscriptionSegment {
+        let words = AppleTranscriptionWords.words(
+            from: text
         )
-
-        let duration = CMTimeGetSeconds(
-            range.duration
-        )
-
-        guard start.isFinite,
-              duration.isFinite
-        else {
-            return nil
-        }
 
         return .init(
-            start: start,
-            duration: duration
+            text: String(
+                text.characters
+            ),
+            range: Audio.TimeRange(
+                cmTimeRange: range
+            ),
+            confidence: AppleTranscriptionWords.confidence(
+                of: words
+            ),
+            alternatives: alternatives.map {
+                String(
+                    $0.characters
+                )
+            },
+            isFinal: isFinal,
+            words: words
         )
     }
 
@@ -331,7 +320,7 @@ private extension AppleTranscriber {
 
         let transcriber = SpeechTranscriber(
             locale: locale,
-            preset: .timeIndexedTranscriptionWithAlternatives
+            preset: .timeIndexedWordTranscription
         )
 
         try await ensureAssets(
@@ -401,7 +390,7 @@ private extension AppleTranscriber {
 
         let transcriber = DictationTranscriber(
             locale: locale,
-            preset: .timeIndexedLongDictation
+            preset: .timeIndexedWordDictation
         )
 
         try await ensureAssets(
