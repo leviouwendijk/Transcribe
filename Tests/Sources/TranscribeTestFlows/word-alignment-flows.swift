@@ -334,6 +334,58 @@ extension TranscribeFlowSuite {
                 )
             }
 
+            Step("zero-length runs join the word before them") {
+                var ja = AttributedString("Ja")
+                ja.audioTimeRange = WordAlignmentFixture.cmRange(
+                    start: 2.64,
+                    duration: 0.24
+                )
+
+                var comma = AttributedString(",")
+                comma.audioTimeRange = WordAlignmentFixture.cmRange(
+                    start: 2.88,
+                    duration: 0
+                )
+
+                var repeated = AttributedString(" ja")
+                repeated.audioTimeRange = WordAlignmentFixture.cmRange(
+                    start: 2.88,
+                    duration: 0
+                )
+
+                var dat = AttributedString(" dat")
+                dat.audioTimeRange = WordAlignmentFixture.cmRange(
+                    start: 2.9,
+                    duration: 0.2
+                )
+
+                let words = AppleTranscriptionWords.words(
+                    from: ja + comma + repeated + dat
+                )
+
+                try Expect.equal(
+                    words.map(\.text),
+                    [
+                        "Ja, ja",
+                        "dat",
+                    ],
+                    "words.apple.zero-length.text"
+                )
+
+                try Expect.true(
+                    zip(
+                        words.map(\.range.duration),
+                        [
+                            0.24,
+                            0.2,
+                        ]
+                    ).allSatisfy {
+                        abs($0 - $1) < 1e-3
+                    },
+                    "words.apple.zero-length.ranges"
+                )
+            }
+
             Step("context projects turns and word counts") {
                 let analysis = WordAlignmentFixture.analysis(
                     words: [

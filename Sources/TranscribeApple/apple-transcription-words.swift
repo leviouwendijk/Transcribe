@@ -9,7 +9,8 @@ import Transcribe
 /// Time-indexed presets attach an `audioTimeRange` to each run; with
 /// `transcriptionConfidence` requested, runs also carry a confidence.
 /// Untimed runs (punctuation, mostly) join the word before them, or the
-/// next word when nothing precedes them.
+/// next word when nothing precedes them. Dictation also emits zero-length
+/// ranges for punctuation and some repeated words; those count as untimed.
 @_spi(Testing)
 public enum AppleTranscriptionWords {
     public static func words(
@@ -40,7 +41,8 @@ public enum AppleTranscriptionWords {
             if let timeRange = run.audioTimeRange,
                let range = Audio.TimeRange(
                    cmTimeRange: timeRange
-               ) {
+               ),
+               range.duration > 0 {
                 words.append(
                     .init(
                         text: pending.isEmpty

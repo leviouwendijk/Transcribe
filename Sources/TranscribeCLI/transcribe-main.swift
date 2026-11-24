@@ -104,31 +104,41 @@ extension TranscribeCLI {
             return
         }
 
-        let acoustic = diarization.acoustic
+        if let backend = diarization.backend {
+            print(
+                "diarizer: \(backend.identifier) \(backend.model ?? "")"
+            )
+        } else {
+            print(
+                "diarizer: acoustic"
+            )
+        }
 
-        print(
-            "analysis sample rate: \(acoustic?.sampleRate ?? 0) Hz"
-        )
+        if let acoustic = diarization.acoustic {
+            print(
+                "analysis sample rate: \(acoustic.sampleRate) Hz"
+            )
 
-        print(
-            "acoustic observations: \(acoustic?.observations.count ?? 0)"
-        )
+            print(
+                "acoustic observations: \(acoustic.observations.count)"
+            )
 
-        print(
-            "usable acoustic observations: \(acoustic?.usableObservations.count ?? 0)"
-        )
+            print(
+                "usable acoustic observations: \(acoustic.usableObservations.count)"
+            )
 
-        print(
-            "enhanced usable observations: \(diarization.enhancedAcoustic?.usableObservations.count ?? 0)"
-        )
+            print(
+                "enhanced usable observations: \(diarization.enhancedAcoustic?.usableObservations.count ?? 0)"
+            )
 
-        print(
-            "recovered enhanced observations: \(diarization.enhancement?.recoveredUsableObservationCount ?? 0)"
-        )
+            print(
+                "recovered enhanced observations: \(diarization.enhancement?.recoveredUsableObservationCount ?? 0)"
+            )
 
-        print(
-            "noise profile observations: \(diarization.noiseProfile?.observationCount ?? 0)"
-        )
+            print(
+                "noise profile observations: \(diarization.noiseProfile?.observationCount ?? 0)"
+            )
+        }
 
         if let enhancement = diarization.enhancement {
             print(

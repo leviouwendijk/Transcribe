@@ -1,4 +1,5 @@
 import Diarization
+import DiarizationFluidAudio
 import EmbeddingProviderFluidAudio
 import Foundation
 import SpeechAnalysisContext
@@ -12,27 +13,55 @@ enum TranscribeCommandRunner {
         )
         let runner = AppleSpeechAnalysisRunner()
         let result: AppleSpeechAnalysisResult
+        let model: AppleTranscriptionModel
+
+        if let requested = options.model {
+            model = requested
+        } else {
+            model = await AppleTranscriber.preferredModel(
+                localeIdentifier: options.localeIdentifier
+            )
+        }
+
+        let speakerDiarizer: AppleSpeakerDiarizer
+
+        switch options.diarizer {
+        case .acoustic:
+            speakerDiarizer = .acoustic
+        case .fluidAudio:
+            speakerDiarizer = .backend(
+                FluidAudioDiarizationBackend(),
+                speakerCount: .init(
+                    exact: options.expectedSpeakerCount,
+                    maximum: options.requestedMaximumSpeakerCount
+                )
+            )
+        }
 
         switch options.speakerEmbeddings {
         case .none:
             result = try await runner.analyze(
                 file: options.file,
                 localeIdentifier: options.localeIdentifier,
-                model: options.model,
+                model: model,
                 diarizationConfiguration: diarizationConfiguration,
-                speakerEvidenceMode: options.speakerEvidenceMode
+                speakerEvidenceMode: options.speakerEvidenceMode,
+                speakerDiarizer: speakerDiarizer
             )
 
         case .some(.fluidAudio):
             result = try await runner.analyze(
                 file: options.file,
                 localeIdentifier: options.localeIdentifier,
-                model: options.model,
+                model: model,
                 diarizationConfiguration: diarizationConfiguration,
                 speakerEmbeddingProvider: FluidAudioSpeakerEmbeddingProvider(),
-                speakerEvidenceMode: options.speakerEvidenceMode
+                speakerEvidenceMode: options.speakerEvidenceMode,
+                speakerDiarizer: speakerDiarizer
             )
         }
+
+        print("model: \(model.rawValue)")
 
         TranscribeCLI.renderDiagnostics(result.analysis)
 

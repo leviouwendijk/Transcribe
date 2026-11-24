@@ -39,6 +39,7 @@ let package = Package(
                 .product(name: "Transcribe", package: "Transcribe"),
                 .product(name: "TranscribeApple", package: "Transcribe"),
                 .product(name: "Diarization", package: "Transcribe"),
+                .product(name: "DiarizationFluidAudio", package: "Transcribe"),
                 .product(name: "EmbeddingProviderFluidAudio", package: "Transcribe"),
                 .product(name: "SpeechAnalysis", package: "Transcribe"),
                 .product(name: "SpeechAnalysisContext", package: "Transcribe"),

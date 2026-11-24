@@ -65,10 +65,15 @@ public struct AppleSpeechAnalysisRunner: Sendable {
         trackID: Int32? = nil,
         diarizationConfiguration: DiarizationConfiguration = .init(),
         speakerEmbeddingProvider: (any SpeakerEmbeddingProvider)? = nil,
-        speakerEvidenceMode: AppleSpeakerEvidenceMode = .acoustic
+        speakerEvidenceMode: AppleSpeakerEvidenceMode = .acoustic,
+        speakerDiarizer: AppleSpeakerDiarizer = .acoustic
     ) async throws -> AppleSpeechAnalysisResult {
         if speakerEvidenceMode != .acoustic, speakerEmbeddingProvider == nil {
             throw AppleSpeakerEvidenceModeError.embeddingProviderRequired
+        }
+        if case .backend = speakerDiarizer,
+           speakerEmbeddingProvider != nil || speakerEvidenceMode != .acoustic {
+            throw AppleSpeakerEvidenceModeError.backendExcludesSpeakerEvidence
         }
         let file = file.standardizedFileURL
         let totalStarted = uptime()
@@ -82,6 +87,7 @@ public struct AppleSpeechAnalysisRunner: Sendable {
         async let diarizationTask = diarize(
             file: file,
             trackID: trackID,
+            diarizer: speakerDiarizer,
             configuration: diarizationConfiguration,
             retainEmbeddingAudio: speakerEmbeddingProvider != nil
         )
@@ -213,6 +219,81 @@ private extension AppleSpeechAnalysisRunner {
     }
 
     func diarize(
+        file: URL,
+        trackID: Int32?,
+        diarizer: AppleSpeakerDiarizer,
+        configuration: DiarizationConfiguration,
+        retainEmbeddingAudio: Bool
+    ) async throws -> TimedDiarization {
+        switch diarizer {
+        case .acoustic:
+            return try await diarizeAcoustically(
+                file: file,
+                trackID: trackID,
+                configuration: configuration,
+                retainEmbeddingAudio: retainEmbeddingAudio
+            )
+
+        case .backend(let backend, let speakerCount):
+            return try await diarize(
+                file: file,
+                trackID: trackID,
+                backend: backend,
+                speakerCount: speakerCount
+            )
+        }
+    }
+
+    func diarize(
+        file: URL,
+        trackID: Int32?,
+        backend: any AudioDiarizationBackend,
+        speakerCount: SpeakerCountBounds
+    ) async throws -> TimedDiarization {
+        let accumulator = SpeakerEmbeddingAudioAccumulator()
+        let inputStarted = uptime()
+
+        try await MediaAssetAudioReader().read(
+            file,
+            trackID: trackID
+        ) { chunk in
+            accumulator.consume(
+                chunk
+            )
+        }
+
+        let audio = accumulator.finish()
+        let inputSeconds = uptime()
+            - inputStarted
+        let speakerStarted = uptime()
+
+        let result: DiarizationResult
+
+        if let audio {
+            result = try await backend.diarize(
+                .init(
+                    audio: audio.buffer,
+                    startingAt: audio.startingAt,
+                    speakerCount: speakerCount
+                )
+            )
+        } else {
+            result = .init(
+                segments: []
+            )
+        }
+
+        return .init(
+            result: result,
+            embeddingAudio: nil,
+            mediaInputAndAccumulationSeconds: inputSeconds,
+            acousticDSPSeconds: 0,
+            speakerDiarizationSeconds: uptime()
+                - speakerStarted
+        )
+    }
+
+    func diarizeAcoustically(
         file: URL,
         trackID: Int32?,
         configuration: DiarizationConfiguration,

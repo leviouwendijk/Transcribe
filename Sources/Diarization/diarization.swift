@@ -117,6 +117,9 @@ public struct DiarizationResult:
     public let noiseProfile: AcousticNoiseProfile?
     public let noiseEvidence: [AcousticNoiseEvidence]
     public let enhancement: AcousticEnhancementSummary?
+    /// Set when an `AudioDiarizationBackend` produced the result; nil for
+    /// the acoustic `Diarizer`.
+    public let backend: DiarizationBackendIdentity?
 
     public init(
         segments: [SpeakerSegment],
@@ -128,7 +131,8 @@ public struct DiarizationResult:
         enhancedAcoustic: AcousticAnalysis? = nil,
         noiseProfile: AcousticNoiseProfile? = nil,
         noiseEvidence: [AcousticNoiseEvidence] = [],
-        enhancement: AcousticEnhancementSummary? = nil
+        enhancement: AcousticEnhancementSummary? = nil,
+        backend: DiarizationBackendIdentity? = nil
     ) {
         self.segments = segments
         self.profiles = profiles
@@ -140,6 +144,7 @@ public struct DiarizationResult:
         self.noiseProfile = noiseProfile
         self.noiseEvidence = noiseEvidence
         self.enhancement = enhancement
+        self.backend = backend
     }
 
     public var speakers: [SpeakerID] {

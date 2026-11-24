@@ -33,6 +33,12 @@ let package = Package(
             ]
         ),
         .library(
+            name: "DiarizationFluidAudio",
+            targets: [
+                "DiarizationFluidAudio",
+            ]
+        ),
+        .library(
             name: "SpeechAnalysis",
             targets: [
                 "SpeechAnalysis",
@@ -119,6 +125,24 @@ let package = Package(
             ]
         ),
         .target(
+            name: "DiarizationFluidAudio",
+            dependencies: [
+                "Diarization",
+                .product(
+                    name: "FluidAudio",
+                    package: "FluidAudio"
+                ),
+                .product(
+                    name: "MediaAudio",
+                    package: "Media"
+                ),
+                .product(
+                    name: "MediaCore",
+                    package: "Media"
+                ),
+            ]
+        ),
+        .target(
             name: "SpeechAnalysis",
             dependencies: [
                 "Transcribe",
@@ -174,6 +198,7 @@ let package = Package(
             dependencies: [
                 "TranscribeApple",
                 "Diarization",
+                "DiarizationFluidAudio",
                 "EmbeddingProviderFluidAudio",
                 "SpeechAnalysis",
                 "SpeechAnalysisContext",

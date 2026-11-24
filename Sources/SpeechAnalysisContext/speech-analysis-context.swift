@@ -285,11 +285,27 @@ public struct SpeechAnalysisAlignmentConfigurationContext:
 }
 
 @JSONSchema
+public struct SpeechAnalysisDiarizationBackendContext:
+    Sendable,
+    Codable,
+    Hashable
+{
+    public let identifier: String
+    public let model: String?
+    /// Speaker-count hints the backend received; all nil means it chose the count itself.
+    public let exactSpeakerCount: Int?
+    public let minimumSpeakerCount: Int?
+    public let maximumSpeakerCount: Int?
+}
+
+@JSONSchema
 public struct SpeechAnalysisInferenceContext:
     Sendable,
     Codable,
     Hashable
 {
+    /// Present when an audio diarization backend replaced the acoustic diarizer.
+    public let backend: SpeechAnalysisDiarizationBackendContext?
     public let diarization: SpeechAnalysisDiarizationMethodContext?
     public let alignment: SpeechAnalysisAlignmentConfigurationContext?
 }
@@ -824,6 +840,15 @@ private extension SpeechAnalysisContextProjector {
         _ value: SpeechAnalysisResult
     ) -> SpeechAnalysisInferenceContext {
         .init(
+            backend: value.diarization?.backend.map {
+                .init(
+                    identifier: $0.identifier,
+                    model: $0.model,
+                    exactSpeakerCount: $0.speakerCount.exact,
+                    minimumSpeakerCount: $0.speakerCount.minimum,
+                    maximumSpeakerCount: $0.speakerCount.maximum
+                )
+            },
             diarization: value.diarization?.method.map(diarizationMethod),
             alignment: value.alignment?.configuration.map(alignmentConfiguration)
         )

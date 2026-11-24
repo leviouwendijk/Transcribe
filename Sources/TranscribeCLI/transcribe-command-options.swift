@@ -11,6 +11,7 @@ enum TranscribeCommandOptionsError: Error, LocalizedError, Sendable {
     case missingSpeakerEmbeddingProvider
     case invalidSpeakerEvidenceWeights
     case unexpectedSpeakerEvidenceWeights
+    case acousticOnlyOption(String)
 
     var errorDescription: String? {
         switch self {
@@ -28,6 +29,8 @@ enum TranscribeCommandOptionsError: Error, LocalizedError, Sendable {
             "hybrid weights must be finite, nonnegative, and have a positive sum"
         case .unexpectedSpeakerEvidenceWeights:
             "speaker evidence weights are only valid with --speaker-evidence hybrid"
+        case .acousticOnlyOption(let option):
+            "\(option) only applies to --diarizer acoustic"
         }
     }
 }
@@ -45,6 +48,11 @@ enum TranscribeModelArgument: String, Sendable, ArgumentValue {
 }
 
 enum TranscribeSpeakerEmbeddingArgument: String, Sendable, ArgumentValue {
+    case fluidAudio = "fluid-audio"
+}
+
+enum TranscribeDiarizerArgument: String, Sendable, ArgumentValue {
+    case acoustic
     case fluidAudio = "fluid-audio"
 }
 
@@ -73,9 +81,13 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
 
     let file: URL
     let localeIdentifier: String
-    let model: AppleTranscriptionModel
+    /// nil picks the model from the locale at run time.
+    let model: AppleTranscriptionModel?
+    let diarizer: TranscribeDiarizerArgument
     let expectedSpeakerCount: Int?
     let maximumSpeakerCount: Int
+    /// `--max-speakers` as given; backends only get a bound when one is asked for.
+    let requestedMaximumSpeakerCount: Int?
     let traceOutput: URL?
     let contextOutput: URL?
     let contextDetail: SpeechAnalysisContextDetail
@@ -107,8 +119,8 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
                 throw TranscribeCommandOptionsError.invalidModel(legacy)
             }
             model = TranscribeModelArgument(rawValue: legacy)?.model
-                ?? .speech
         }
+        diarizer = arguments.diarizer
 
         if let requested = arguments.speakerCount {
             guard requested > 0 else {
@@ -133,6 +145,7 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
             throw TranscribeCommandOptionsError.invalidMaximumSpeakerCount(String(ceiling))
         }
         maximumSpeakerCount = ceiling
+        requestedMaximumSpeakerCount = arguments.maxSpeakers
 
         traceOutput = outputURL(
             arguments.traceOutput ?? arguments.legacyTraceOutput
@@ -168,6 +181,22 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
                 throw TranscribeCommandOptionsError.invalidSpeakerEvidenceWeights
             }
             speakerEvidenceMode = .hybrid(.init(acoustic: acoustic, embedding: embedding))
+        }
+
+        if diarizer != .acoustic {
+            let acousticOnly: [(Bool, String)] = [
+                (speakerEmbeddings != nil, "--speaker-embeddings"),
+                (selectedEvidence != .acoustic, "--speaker-evidence"),
+                (speakerAblation || speakerAblationDetail, "--speaker-ablation"),
+                (speakerCalibration, "--speaker-calibration"),
+                (traceOutput != nil, "--trace-output"),
+            ]
+
+            if let option = acousticOnly.first(where: { $0.0 }) {
+                throw TranscribeCommandOptionsError.acousticOnlyOption(
+                    option.1
+                )
+            }
         }
     }
 
@@ -210,8 +239,12 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
         @Opt("locale", short: "l", help: "Locale identifier. Defaults to nl-NL.")
         var locale: String?
 
-        @Opt("model", short: "m", help: "Apple model: speech or dictation.")
+        @Opt("model", short: "m", help: "Apple model: speech or dictation. Defaults to speech where the locale supports it, else dictation.")
         var model: TranscribeModelArgument?
+
+        @Opt("diarizer", default: .acoustic,
+             help: "Speaker diarizer: acoustic, or fluid-audio (offline pyannote + VBx; downloads models on first use).")
+        var diarizer: TranscribeDiarizerArgument
 
         @Opt("speaker-count", short: "s", help: "Expected positive speaker count.")
         var speakerCount: Int?

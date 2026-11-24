@@ -8,6 +8,24 @@ import Transcribe
 public struct AppleTranscriber: Sendable {
     public init() {}
 
+    /// `.speech` when `SpeechTranscriber` is available and supports the
+    /// locale, otherwise `.dictation` (which covers more locales, Dutch
+    /// among them).
+    public static func preferredModel(
+        localeIdentifier: String
+    ) async -> AppleTranscriptionModel {
+        guard SpeechTranscriber.isAvailable,
+              await SpeechTranscriber.supportedLocale(
+                  equivalentTo: Locale(
+                      identifier: localeIdentifier
+                  )
+              ) != nil else {
+            return .dictation
+        }
+
+        return .speech
+    }
+
     public func transcribe(
         file: URL,
         localeIdentifier: String,
