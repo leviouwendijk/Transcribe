@@ -120,7 +120,6 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
             }
             model = TranscribeModelArgument(rawValue: legacy)?.model
         }
-        diarizer = arguments.diarizer
 
         if let requested = arguments.speakerCount {
             guard requested > 0 else {
@@ -183,20 +182,28 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
             speakerEvidenceMode = .hybrid(.init(acoustic: acoustic, embedding: embedding))
         }
 
-        if diarizer != .acoustic {
-            let acousticOnly: [(Bool, String)] = [
-                (speakerEmbeddings != nil, "--speaker-embeddings"),
-                (selectedEvidence != .acoustic, "--speaker-evidence"),
-                (speakerAblation || speakerAblationDetail, "--speaker-ablation"),
-                (speakerCalibration, "--speaker-calibration"),
-                (traceOutput != nil, "--trace-output"),
-            ]
+        let acousticOnlyOption = [
+            (speakerEmbeddings != nil, "--speaker-embeddings"),
+            (selectedEvidence != .acoustic, "--speaker-evidence"),
+            (speakerAblation || speakerAblationDetail, "--speaker-ablation"),
+            (speakerCalibration, "--speaker-calibration"),
+            (traceOutput != nil, "--trace-output"),
+        ].first {
+            $0.0
+        }?.1
 
-            if let option = acousticOnly.first(where: { $0.0 }) {
-                throw TranscribeCommandOptionsError.acousticOnlyOption(
-                    option.1
-                )
-            }
+        // FluidAudio by default; acoustic when an acoustic-only option asks for it.
+        switch (arguments.diarizer, acousticOnlyOption) {
+        case (.some(.fluidAudio), .some(let option)):
+            throw TranscribeCommandOptionsError.acousticOnlyOption(
+                option
+            )
+        case (.some(let requested), _):
+            diarizer = requested
+        case (.none, .some):
+            diarizer = .acoustic
+        case (.none, .none):
+            diarizer = .fluidAudio
         }
     }
 
@@ -242,9 +249,9 @@ struct TranscribeCommandOptions: Sendable, ArgumentParsed {
         @Opt("model", short: "m", help: "Apple model: speech or dictation. Defaults to speech where the locale supports it, else dictation.")
         var model: TranscribeModelArgument?
 
-        @Opt("diarizer", default: .acoustic,
-             help: "Speaker diarizer: acoustic, or fluid-audio (offline pyannote + VBx; downloads models on first use).")
-        var diarizer: TranscribeDiarizerArgument
+        @Opt("diarizer",
+             help: "Speaker diarizer: fluid-audio (default; offline pyannote + VBx, downloads models on first use) or acoustic (default when an acoustic-only option is given).")
+        var diarizer: TranscribeDiarizerArgument?
 
         @Opt("speaker-count", short: "s", help: "Expected positive speaker count.")
         var speakerCount: Int?

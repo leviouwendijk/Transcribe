@@ -39,6 +39,25 @@ enum TranscribeCommandRunner {
         }
 
         switch options.speakerEmbeddings {
+        case .none where options.diarizer == .fluidAudio:
+            do {
+                result = try await runner.analyze(
+                    file: options.file,
+                    localeIdentifier: options.localeIdentifier,
+                    model: model,
+                    diarizationConfiguration: diarizationConfiguration,
+                    speakerEvidenceMode: options.speakerEvidenceMode,
+                    speakerDiarizer: speakerDiarizer
+                )
+            } catch {
+                FileHandle.standardError.write(
+                    Data(
+                        "analysis with --diarizer fluid-audio failed; if FluidAudio's models could not be downloaded or loaded, rerun with --diarizer acoustic\n".utf8
+                    )
+                )
+                throw error
+            }
+
         case .none:
             result = try await runner.analyze(
                 file: options.file,
