@@ -165,6 +165,8 @@ extension TranscribeFlowSuite {
                     )
                 }
                 let transcription = Transcription(
+                    localeIdentifier: "nl_NL",
+                    transcriber: "Apple.DictationTranscriber",
                     segments: [
                         .init(
                             text: words
@@ -213,19 +215,37 @@ extension TranscribeFlowSuite {
 
                 let context = SpeechAnalysisContextProjector().project(
                     analysis,
-                    detail: .diagnostic
+                    detail: .conversation
                 )
 
                 try Expect.equal(
-                    context.inference?.backend?.identifier,
+                    context.provenance.diarizer,
                     FluidAudioDiarizationBackend.identifier,
-                    "fluid-audio-diarization.context-backend"
+                    "fluid-audio-diarization.provenance-diarizer"
                 )
 
                 try Expect.equal(
-                    context.inference?.backend?.maximumSpeakerCount,
+                    context.provenance.diarizerModel,
+                    FluidAudioDiarizationBackend.model,
+                    "fluid-audio-diarization.provenance-model"
+                )
+
+                try Expect.equal(
+                    context.provenance.transcriber,
+                    "Apple.DictationTranscriber",
+                    "fluid-audio-diarization.provenance-transcriber"
+                )
+
+                try Expect.equal(
+                    context.provenance.maximumSpeakerCount,
                     nil,
-                    "fluid-audio-diarization.context-no-bounds"
+                    "fluid-audio-diarization.provenance-no-bounds"
+                )
+
+                try Expect.equal(
+                    context.provenance.minimumWordDominance,
+                    0.7,
+                    "fluid-audio-diarization.provenance-dominance"
                 )
             }
         }

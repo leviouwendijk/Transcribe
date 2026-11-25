@@ -142,6 +142,7 @@ private extension AppleTranscriber {
         return .init(
             transcription: .init(
                 localeIdentifier: locale.identifier,
+                transcriber: AppleTranscriptionModel.speech.transcriberIdentifier,
                 segments: results.map(
                     segment
                 )
@@ -210,6 +211,7 @@ private extension AppleTranscriber {
         return .init(
             transcription: .init(
                 localeIdentifier: locale.identifier,
+                transcriber: AppleTranscriptionModel.dictation.transcriberIdentifier,
                 segments: results.map(
                     segment
                 )
@@ -378,6 +380,7 @@ private extension AppleTranscriber {
         return .init(
             transcription: .init(
                 localeIdentifier: locale.identifier,
+                transcriber: AppleTranscriptionModel.speech.transcriberIdentifier,
                 segments: results.map(
                     segment
                 )
@@ -448,6 +451,7 @@ private extension AppleTranscriber {
         return .init(
             transcription: .init(
                 localeIdentifier: locale.identifier,
+                transcriber: AppleTranscriptionModel.dictation.transcriberIdentifier,
                 segments: results.map(
                     segment
                 )

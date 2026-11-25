@@ -284,18 +284,25 @@ public struct SpeechAnalysisAlignmentConfigurationContext:
     public let minimumWordDominance: Double
 }
 
+/// How the transcript was made. Present at every detail level.
 @JSONSchema
-public struct SpeechAnalysisDiarizationBackendContext:
+public struct SpeechAnalysisProvenanceContext:
     Sendable,
     Codable,
     Hashable
 {
-    public let identifier: String
-    public let model: String?
-    /// Speaker-count hints the backend received; all nil means it chose the count itself.
+    /// Engine that produced the text, e.g. `Apple.DictationTranscriber`.
+    public let transcriber: String?
+    public let localeIdentifier: String?
+    /// `acoustic`, or the diarization backend's identifier (e.g. `FluidAudio.offline`).
+    public let diarizer: String?
+    public let diarizerModel: String?
+    /// Speaker-count hints the diarizer received; all nil means it chose the count itself.
     public let exactSpeakerCount: Int?
     public let minimumSpeakerCount: Int?
     public let maximumSpeakerCount: Int?
+    /// Share of a word the leading speaker must cover; below it the word is an overlap.
+    public let minimumWordDominance: Double?
 }
 
 @JSONSchema
@@ -304,8 +311,6 @@ public struct SpeechAnalysisInferenceContext:
     Codable,
     Hashable
 {
-    /// Present when an audio diarization backend replaced the acoustic diarizer.
-    public let backend: SpeechAnalysisDiarizationBackendContext?
     public let diarization: SpeechAnalysisDiarizationMethodContext?
     public let alignment: SpeechAnalysisAlignmentConfigurationContext?
 }
@@ -558,6 +563,7 @@ public struct SpeechAnalysisContext:
 {
     /// Controls projection breadth; it never changes the authoritative SpeechAnalysisResult.
     public let detail: SpeechAnalysisContextDetail
+    public let provenance: SpeechAnalysisProvenanceContext
     public let transcript: SpeechAnalysisTranscriptContext?
     public let speakers: [SpeechAnalysisSpeakerProfileContext]
     /// Present for diagnostic and complete projections.
@@ -583,6 +589,9 @@ public struct SpeechAnalysisContextProjector: Sendable {
 
         return .init(
             detail: detail,
+            provenance: provenance(
+                result
+            ),
             transcript: transcript(
                 result.attributedTranscription
             ),
@@ -606,6 +615,30 @@ public struct SpeechAnalysisContextProjector: Sendable {
 }
 
 private extension SpeechAnalysisContextProjector {
+    func provenance(
+        _ value: SpeechAnalysisResult
+    ) -> SpeechAnalysisProvenanceContext {
+        let diarization = value.diarization
+        let backend = diarization?.backend
+        let acoustic = diarization?.method?.configuration
+
+        return .init(
+            transcriber: value.transcription?.transcriber,
+            localeIdentifier: value.transcription?.localeIdentifier,
+            diarizer: backend?.identifier
+                ?? diarization.map { _ in
+                    "acoustic"
+                },
+            diarizerModel: backend?.model,
+            exactSpeakerCount: backend.map(\.speakerCount.exact)
+                ?? acoustic?.expectedSpeakerCount,
+            minimumSpeakerCount: backend?.speakerCount.minimum,
+            maximumSpeakerCount: backend.map(\.speakerCount.maximum)
+                ?? acoustic?.maximumSpeakerCount,
+            minimumWordDominance: value.alignment?.configuration?.minimumWordDominance
+        )
+    }
+
     func range(
         _ value: Audio.TimeRange
     ) -> SpeechAnalysisTimeRangeContext {
@@ -840,15 +873,6 @@ private extension SpeechAnalysisContextProjector {
         _ value: SpeechAnalysisResult
     ) -> SpeechAnalysisInferenceContext {
         .init(
-            backend: value.diarization?.backend.map {
-                .init(
-                    identifier: $0.identifier,
-                    model: $0.model,
-                    exactSpeakerCount: $0.speakerCount.exact,
-                    minimumSpeakerCount: $0.speakerCount.minimum,
-                    maximumSpeakerCount: $0.speakerCount.maximum
-                )
-            },
             diarization: value.diarization?.method.map(diarizationMethod),
             alignment: value.alignment?.configuration.map(alignmentConfiguration)
         )

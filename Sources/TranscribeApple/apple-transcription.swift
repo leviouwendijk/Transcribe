@@ -11,6 +11,16 @@ public enum AppleTranscriptionModel:
 {
     case speech
     case dictation
+
+    /// Recorded as `Transcription.transcriber`.
+    public var transcriberIdentifier: String {
+        switch self {
+        case .speech:
+            "Apple.SpeechTranscriber"
+        case .dictation:
+            "Apple.DictationTranscriber"
+        }
+    }
 }
 
 public enum AppleTranscriptionError:

@@ -58,13 +58,17 @@ public struct Transcription:
     Hashable
 {
     public let localeIdentifier: String?
+    /// Which engine produced the text, e.g. `Apple.DictationTranscriber`.
+    public let transcriber: String?
     public let segments: [TranscriptionSegment]
 
     public init(
         localeIdentifier: String? = nil,
+        transcriber: String? = nil,
         segments: [TranscriptionSegment]
     ) {
         self.localeIdentifier = localeIdentifier
+        self.transcriber = transcriber
         self.segments = segments
     }
 
